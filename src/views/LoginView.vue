@@ -52,13 +52,20 @@ export default {
         }
 
         const userDoc = querySnapshot.docs[0];
-        const email = userDoc.data().email;
-        const name = userDoc.data().name;
-        const surname = userDoc.data().surname;
+        const userData = userDoc.data();
+        const email = userData.email;
+        const name = userData.name;
+        const surname = userData.surname;
+        const isAdmin = userData.isAdmin || false;
 
         await signInWithEmailAndPassword(auth, email, this.password);
 
-        this.userStore.setUser({ name, surname, username: this.username });
+        this.userStore.setUser({
+          name,
+          surname,
+          username: this.username,
+          isAdmin,
+        });
 
         this.router.push("/home");
       } catch (error) {
@@ -69,7 +76,6 @@ export default {
     },
   },
 };
-
 </script>
 
 <style scoped>

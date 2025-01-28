@@ -11,7 +11,9 @@
             Bienvenido, {{ userStore.name }} {{ userStore.surname }}
           </h2>
         </div>
-        <div class="col-4">
+
+        <!-- Botón de nueva planilla (solo para usuarios estándar) -->
+        <div v-if="!userStore.isAdmin" class="col-4">
           <div class="card text-center shadow" @click="nuevaPlanilla">
             <div class="card-body">
               <h3 class="card-title">+</h3>
@@ -24,7 +26,10 @@
       <!-- Historial de Planillas -->
       <div class="row justify-content-center mt-4">
         <div class="col-12">
-          <h3>Historial de Planillas</h3>
+          <h3>
+            Historial de Planillas 
+            <span v-if="userStore.isAdmin">(Todos los usuarios)</span>
+          </h3>
         </div>
 
         <div
@@ -95,17 +100,48 @@ export default {
 
     if (user) {
       try {
-        const q = query(
-          collection(db, "planillas"),
-          where("usuario.email", "==", user.email),
-          orderBy("fechaCreacion", "desc")
-        );
+        let q;
+
+        // Determinar si el usuario es administrador
+        if (this.userStore.isAdmin) {
+          // Admin: Obtener todas las planillas, ordenadas por fecha
+          q = query(collection(db, "planillas"), orderBy("fechaCreacion", "desc"));
+        } else {
+          // Usuario estándar: Obtener solo las planillas del usuario
+          q = query(
+            collection(db, "planillas"),
+            where("usuario.email", "==", user.email),
+            orderBy("fechaCreacion", "desc")
+          );
+        }
+
         const querySnapshot = await getDocs(q);
 
-        this.planillas = querySnapshot.docs.map((doc) => ({
+        const planillas = querySnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
+
+        if (this.userStore.isAdmin) {
+          const usuariosSnapshot = await getDocs(collection(db, "usuarios"));
+          const usuarios = usuariosSnapshot.docs.reduce((acc, doc) => {
+            const data = doc.data();
+            acc[data.email] = { name: data.name, surname: data.surname };
+            return acc;
+          }, {});
+
+          this.planillas = planillas.map((planilla) => {
+            const usuarioInfo = usuarios[planilla.usuario.email] || {};
+            return {
+              ...planilla,
+              usuarioNombre: `${usuarioInfo.name || "N/A"} ${
+                usuarioInfo.surname || ""
+              }`,
+            };
+          });
+        } else {
+          this.planillas = planillas;
+        }
       } catch (error) {
         console.error("Error al obtener las planillas:", error);
       }
@@ -124,13 +160,12 @@ export default {
 };
 </script>
 
+
 <style scoped>
-/* General */
 .container {
   margin-top: 20px;
 }
 
-/* Navbar */
 .welcome-message {
   font-size: 24px;
   font-weight: bold;
@@ -138,7 +173,6 @@ export default {
   margin-bottom: 20px;
 }
 
-/* Nueva Planilla Card */
 .card.text-center {
   background-color: #007bff;
   color: white;
@@ -161,15 +195,9 @@ export default {
   font-size: 18px;
 }
 
-/* Historial */
 h3 {
   font-size: 20px;
   color: #007bff;
   margin-bottom: 15px;
 }
-
-.card-title {
-  color: white;
-}
 </style>
-

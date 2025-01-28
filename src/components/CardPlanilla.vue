@@ -7,6 +7,9 @@
         <strong>Inicio:</strong> {{ planilla.horarioInicio }}<br />
         <strong>Fin:</strong> {{ planilla.horarioFin }}
       </p>
+      <p v-if="planilla.usuarioNombre" class="card-text">
+        Creado por: {{ planilla.usuarioNombre }}
+      </p>
     </div>
   </div>
 </template>

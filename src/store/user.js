@@ -5,14 +5,20 @@ export const useUserStore = defineStore("user", {
     name: "",
     surname: "",
     username: "",
-    isAdmin: "",
+    isAdmin: false, // Variable para identificar si el usuario es administrador
   }),
   actions: {
-    setUser(userData) {
-      this.name = userData.name;
-      this.surname = userData.surname;
-      this.username = userData.username;
-      this.isAdmin = userData.isAdmin;
+    setUser({ name, surname, username, isAdmin }) {
+      this.name = name;
+      this.surname = surname;
+      this.username = username;
+      this.isAdmin = isAdmin; // Asignar el valor de isAdmin al iniciar sesión
+    },
+    clearUser() {
+      this.name = "";
+      this.surname = "";
+      this.username = "";
+      this.isAdmin = false;
     },
   },
 });
