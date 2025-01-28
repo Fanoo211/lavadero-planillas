@@ -47,10 +47,11 @@
 
     <!-- Modal -->
     <ModalPlanilla
-      v-if="modalVisible"
-      :planilla="planillaSeleccionada"
-      @close="cerrarModal"
-    />
+    v-if="modalVisible"
+    :planilla="planillaSeleccionada"
+    :isAdmin="userStore.isAdmin"
+    @close="cerrarModal"
+  />
   </div>
 </template>
 
@@ -171,6 +172,10 @@ export default {
   font-weight: bold;
   color: #333;
   margin-bottom: 20px;
+}
+
+.card-title {
+  color: white;
 }
 
 .card.text-center {

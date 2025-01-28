@@ -17,6 +17,8 @@
           ></button>
         </div>
         <div class="modal-body">
+          <!-- Mostrar solo si el usuario es Admin -->
+          <p v-if="isAdmin"><strong>Usuario: {{ planilla.usuarioNombre.toUpperCase() }}</strong></p>
           <p><strong>Fecha:</strong> {{ planilla.fecha }}</p>
           <p><strong>Turno:</strong> {{ planilla.turno }}</p>
           <p>
@@ -64,6 +66,10 @@ export default {
       type: Object,
       required: true,
     },
+    isAdmin: {
+      type: Boolean,
+      required: true,
+    },
   },
 };
 </script>
@@ -107,4 +113,3 @@ export default {
   background-color: #0056b3;
 }
 </style>
-

@@ -8,7 +8,7 @@
         <strong>Fin:</strong> {{ planilla.horarioFin }}
       </p>
       <p v-if="planilla.usuarioNombre" class="card-text">
-        Creado por: {{ planilla.usuarioNombre }}
+        Creado por: {{ planilla.usuarioNombre.toUpperCase() }}
       </p>
     </div>
   </div>
