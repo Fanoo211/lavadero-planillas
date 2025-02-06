@@ -17,7 +17,6 @@
           ></button>
         </div>
         <div class="modal-body">
-          <!-- Mostrar solo si el usuario es Admin -->
           <p v-if="isAdmin"><strong>Usuario: {{ planilla.usuarioNombre.toUpperCase() }}</strong></p>
           <p><strong>Fecha:</strong> {{ planilla.fecha }}</p>
           <p><strong>Turno:</strong> {{ planilla.turno }}</p>
@@ -27,30 +26,26 @@
           </p>
           <h6>Bandejas Lavadas:</h6>
           <ul>
-            <li
-              v-for="bandeja in planilla.bandejas"
-              :key="bandeja.tipo"
-            >
+            <li v-for="bandeja in planilla.bandejas" :key="bandeja.tipo">
               {{ bandeja.tipo }}: {{ bandeja.cantidad }}
             </li>
           </ul>
           <h6>Controles:</h6>
           <ul>
-            <li
-              v-for="control in planilla.controles"
-              :key="control.pregunta"
-            >
+            <li v-for="control in planilla.controles" :key="control.pregunta">
               {{ control.pregunta }}: {{ control.estado ? "✔" : "✘" }}
             </li>
           </ul>
         </div>
         <div class="modal-footer">
-          <button
-            type="button"
-            class="btn btn-secondary"
-            @click="$emit('close')"
-          >
+          <button type="button" class="btn btn-secondary" @click="$emit('close')">
             Cerrar
+          </button>
+          <button type="button" class="btn btn-warning" @click="editarPlanilla">
+            Editar
+          </button>
+          <button type="button" class="btn btn-danger" @click="eliminarPlanilla">
+            Eliminar
           </button>
         </div>
       </div>
@@ -59,6 +54,11 @@
 </template>
 
 <script>
+import { getFirestore, doc, deleteDoc } from "firebase/firestore";
+import { useRouter } from "vue-router";
+
+const db = getFirestore();
+
 export default {
   name: "ModalPlanilla",
   props: {
@@ -70,6 +70,27 @@ export default {
       type: Boolean,
       required: true,
     },
+  },
+  setup(props, { emit }) {
+    const router = useRouter();
+
+    const editarPlanilla = () => {
+      router.push(`/editar-planilla/${props.planilla.id}`);
+    };
+
+    const eliminarPlanilla = async () => {
+      if (confirm("¿Estás seguro de que quieres eliminar esta planilla?")) {
+        try {
+          await deleteDoc(doc(db, "planillas", props.planilla.id));
+          emit("planillaEliminada", props.planilla.id); // Notifica al HomeView
+          emit("close"); // Cierra el modal
+        } catch (error) {
+          console.error("Error eliminando la planilla:", error);
+        }
+      }
+    };
+
+    return { editarPlanilla, eliminarPlanilla };
   },
 };
 </script>
@@ -103,13 +124,24 @@ export default {
 }
 
 .modal-footer button {
-  background-color: #007bff;
-  color: white;
   border-radius: 5px;
   transition: background-color 0.3s;
 }
 
-.modal-footer button:hover {
-  background-color: #0056b3;
+.modal-footer .btn-warning {
+  background-color: #ffc107;
+  color: black;
+}
+
+.modal-footer .btn-warning:hover {
+  background-color: #e0a800;
+}
+
+.modal-footer .btn-danger {
+  background-color: #dc3545;
+}
+
+.modal-footer .btn-danger:hover {
+  background-color: #c82333;
 }
 </style>

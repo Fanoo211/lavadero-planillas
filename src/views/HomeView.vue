@@ -47,11 +47,12 @@
 
     <!-- Modal -->
     <ModalPlanilla
-    v-if="modalVisible"
-    :planilla="planillaSeleccionada"
-    :isAdmin="userStore.isAdmin"
-    @close="cerrarModal"
-  />
+      v-if="modalVisible"
+      :planilla="planillaSeleccionada"
+      :isAdmin="userStore.isAdmin"
+      @close="cerrarModal"
+      @planillaEliminada="eliminarPlanillaLocal"
+    />
   </div>
 </template>
 
@@ -157,6 +158,9 @@ export default {
       this.planillaSeleccionada = null;
       this.modalVisible = false;
     },
+    eliminarPlanillaLocal(id) {
+      this.planillas = this.planillas.filter(planilla => planilla.id !== id);
+    }
   },
 };
 </script>

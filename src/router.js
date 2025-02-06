@@ -3,6 +3,7 @@ import { auth, signOut } from "./firebase";
 import LoginView from "./views/LoginView.vue";
 import HomeView from "./views/HomeView.vue";
 import NuevaPlanillaView from "./views/NuevaPlanillaView.vue";
+import EditarPlanillaView from "./views/EditarPlanillaView.vue"; // Importamos la vista
 
 const routes = [
   {
@@ -20,6 +21,13 @@ const routes = [
     path: "/nueva-planilla",
     name: "NuevaPlanilla",
     component: NuevaPlanillaView,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/editar-planilla/:id",
+    name: "EditarPlanilla",
+    component: EditarPlanillaView,
+    props: true,
     meta: { requiresAuth: true },
   },
   {
