@@ -57,6 +57,18 @@
           <input type="number" v-model="numeroUnidad" min="1" required />
         </div>
         <div class="form-group">
+          <label>Kilómetros antes de iniciar:</label>
+          <input type="number" v-model.number="kmInicio" min="0" required />
+        </div>
+        <div class="form-group">
+          <label>Kilómetros al finalizar:</label>
+          <input type="number" v-model.number="kmFin" min="0" required />
+        </div>
+        <div class="form-group">
+          <label>Kilómetros recorridos:</label>
+          <input type="number" :value="kmRecorridos" disabled />
+        </div>
+        <div class="form-group">
           <label>Control Diario:</label>
           <div v-for="control in controles" :key="control.pregunta" class="control-item">
             <label>{{ control.pregunta }}</label>
@@ -73,8 +85,6 @@
     </form>
   </div>
 </template>
-
-
 
 <script>
 import NavbarComp from "@/components/NavbarComp.vue";
@@ -111,6 +121,8 @@ export default {
       numeroUnidad: "",
       horarioInicio: "",
       horarioFin: "",
+      kmInicio: 0,
+      kmFin: 0,
       bandejas: [
         { tipo: "Sacheteras Leche Fluida", cantidad: 0 },
         { tipo: "Sacheteras Yogur", cantidad: 0 },
@@ -145,6 +157,11 @@ export default {
       ],
     };
   },
+  computed: {
+    kmRecorridos() {
+      return this.kmFin - this.kmInicio;
+    },
+  },
   methods: {
     async fetchUserInfo() {
     const user = auth.currentUser;
@@ -169,39 +186,37 @@ export default {
       return null;
     }
   },
+    async guardarPlanilla() {
+      const userInfo = await this.fetchUserInfo();
+      if (!userInfo) {
+        alert("No se pudo guardar la planilla porque los datos del usuario no están disponibles.");
+        return;
+      }
 
-  async guardarPlanilla() {
-    const userInfo = await this.fetchUserInfo();
-    if (!userInfo) {
-      alert("No se pudo guardar la planilla porque los datos del usuario no están disponibles.");
-      return;
-    }
+      const planilla = {
+        turno: this.turno,
+        fecha: this.fecha,
+        numeroUnidad: this.numeroUnidad,
+        horarioInicio: this.horarioInicio,
+        horarioFin: this.horarioFin,
+        kmInicio: this.kmInicio,
+        kmFin: this.kmFin,
+        kmRecorridos: this.kmRecorridos,
+        bandejas: this.bandejas,
+        controles: this.controles,
+        usuario: { name: userInfo.name, surname: userInfo.surname, email: auth.currentUser.email },
+        fechaCreacion: new Date().toISOString(),
+      };
 
-    const planilla = {
-      turno: this.turno,
-      fecha: this.fecha,
-      numeroUnidad: this.numeroUnidad,
-      horarioInicio: this.horarioInicio,
-      horarioFin: this.horarioFin,
-      bandejas: this.bandejas,
-      controles: this.controles,
-      usuario: {
-        name: userInfo.name,
-        surname: userInfo.surname,
-        email: auth.currentUser.email,
-      },
-      fechaCreacion: new Date().toISOString(),
-    };
-
-    try {
-      await addDoc(collection(db, "planillas"), planilla);
-      alert("Planilla guardada con éxito.");
-      this.$router.push("/home");
-    } catch (error) {
-      console.error("Error al guardar la planilla:", error);
-      alert("Ocurrió un error al guardar la planilla.");
-    }
-  },
+      try {
+        await addDoc(collection(db, "planillas"), planilla);
+        alert("Planilla guardada con éxito.");
+        this.$router.push("/home");
+      } catch (error) {
+        console.error("Error al guardar la planilla:", error);
+        alert("Ocurrió un error al guardar la planilla.");
+      }
+    },
     cancelar() {
       this.$router.push("/home");
     },
@@ -264,4 +279,11 @@ button[type="button"] {
   color: white;
 }
 </style>
+
+
+
+
+
+
+
 

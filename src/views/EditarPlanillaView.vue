@@ -28,8 +28,24 @@
         <label class="form-label">{{ bandeja.tipo }}</label>
         <input type="number" v-model="bandeja.cantidad" class="form-control" min="0" required />
       </div>
-      
+
       <h4>Controles</h4>
+      
+      <div class="mb-3">
+        <label class="form-label">Kilómetros iniciales</label>
+        <input type="number" v-model="planilla.kmInicio" class="form-control" min="0" required />
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Kilómetros finales</label>
+        <input type="number" v-model="planilla.kmFin" class="form-control" min="0" required />
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Kilómetros recorridos</label>
+        <input type="number" :value="planilla.kmFin - planilla.kmInicio" class="form-control" disabled />
+      </div>
+
       <div v-for="(control, index) in planilla.controles" :key="index" class="mb-3">
         <label class="form-label">{{ control.pregunta }}</label>
         <select v-model="control.estado" class="form-select">
@@ -56,6 +72,8 @@ export default {
         turno: "",
         horarioInicio: "",
         horarioFin: "",
+        kmInicio: 0,
+        kmFin: 0,
         bandejas: [],
         controles: []
       },
@@ -74,10 +92,25 @@ export default {
   },
   methods: {
     async guardarCambios() {
+      if (this.planilla.kmFin < this.planilla.kmInicio) {
+        alert("Los kilómetros finales no pueden ser menores que los iniciales.");
+        return;
+      }
+
       const db = getFirestore();
       const docRef = doc(db, "planillas", this.id);
-      await updateDoc(docRef, this.planilla);
-      this.$router.push("/home");
+      
+      // Calcular kilómetros recorridos antes de actualizar Firestore
+      this.planilla.kmRecorridos = this.planilla.kmFin - this.planilla.kmInicio;
+
+      try {
+        await updateDoc(docRef, this.planilla);
+        alert("Planilla actualizada con éxito.");
+        this.$router.push("/home");
+      } catch (error) {
+        console.error("Error al actualizar la planilla:", error);
+        alert("Ocurrió un error al guardar los cambios.");
+      }
     },
     cancelar() {
       this.$router.push("/home");
