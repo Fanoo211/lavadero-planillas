@@ -43,6 +43,15 @@
           />
         </div>
       </div>
+
+      <!-- Botón para mostrar más planillas -->
+      <div class="row justify-content-center mt-4">
+        <div class="col-12 text-center">
+          <button v-if="!allPlanillasLoaded" class="btn btn-primary" @click="loadMorePlanillas">
+            Mostrar más planillas
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Modal -->
@@ -64,7 +73,7 @@ import { auth } from "../firebase";
 import { signOut } from "firebase/auth";
 import { useRouter } from "vue-router";
 import { useUserStore } from "../store/user";
-import { getFirestore, collection, query, where, getDocs, orderBy } from "firebase/firestore";
+import { getFirestore, collection, query, where, getDocs, orderBy, limit, startAfter } from "firebase/firestore";
 
 const db = getFirestore();
 
@@ -93,63 +102,57 @@ export default {
   data() {
     return {
       planillas: [],
+      allPlanillasLoaded: false,  // Cuando todas las planillas estén cargadas
+      lastVisible: null,          // Último documento cargado
+      itemsPerPage: 6,            // Número de items por carga
       modalVisible: false,
       planillaSeleccionada: null,
     };
   },
   async created() {
-    const user = auth.currentUser;
-
-    if (user) {
-      try {
-        let q;
-
-        // Determinar si el usuario es administrador
-        if (this.userStore.isAdmin) {
-          // Admin: Obtener todas las planillas, ordenadas por fecha
-          q = query(collection(db, "planillas"), orderBy("fechaCreacion", "desc"));
-        } else {
-          // Usuario estándar: Obtener solo las planillas del usuario
-          q = query(
-            collection(db, "planillas"),
-            where("usuario.email", "==", user.email),
-            orderBy("fechaCreacion", "desc")
-          );
-        }
-
-        const querySnapshot = await getDocs(q);
-
-        const planillas = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-
-        if (this.userStore.isAdmin) {
-          const usuariosSnapshot = await getDocs(collection(db, "usuarios"));
-          const usuarios = usuariosSnapshot.docs.reduce((acc, doc) => {
-            const data = doc.data();
-            acc[data.email] = { name: data.name, surname: data.surname };
-            return acc;
-          }, {});
-
-          this.planillas = planillas.map((planilla) => {
-            const usuarioInfo = usuarios[planilla.usuario.email] || {};
-            return {
-              ...planilla,
-              usuarioNombre: `${usuarioInfo.name || "N/A"} ${
-                usuarioInfo.surname || ""
-              }`,
-            };
-          });
-        } else {
-          this.planillas = planillas;
-        }
-      } catch (error) {
-        console.error("Error al obtener las planillas:", error);
-      }
-    }
+    await this.loadPlanillas(); // Cargar planillas al inicio
   },
   methods: {
+    async loadPlanillas() {
+      const user = auth.currentUser;
+
+      if (user) {
+        try {
+          let planillasQuery = query(
+            collection(db, "planillas"),
+            where("usuario.email", "==", user.email), // o sin filtro para admin
+            orderBy("fechaCreacion", "desc"),
+            limit(this.itemsPerPage)
+          );
+
+          // Si no estamos en la primera carga, usar `startAfter` para continuar desde la última planilla
+          if (this.lastVisible) {
+            planillasQuery = query(planillasQuery, startAfter(this.lastVisible));
+          }
+
+          const querySnapshot = await getDocs(planillasQuery);
+          const planillas = querySnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+
+          // Actualizar planillas y último documento
+          this.planillas = [...this.planillas, ...planillas];
+          this.lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
+
+          // Si no hay más planillas para cargar, marcar como cargadas todas
+          if (querySnapshot.docs.length < this.itemsPerPage) {
+            this.allPlanillasLoaded = true;
+          }
+
+        } catch (error) {
+          console.error("Error al obtener las planillas:", error);
+        }
+      }
+    },
+    loadMorePlanillas() {
+      this.loadPlanillas();  // Cargar más planillas al hacer clic en el botón
+    },
     abrirModal(planilla) {
       this.planillaSeleccionada = planilla;
       this.modalVisible = true;
@@ -164,7 +167,6 @@ export default {
   },
 };
 </script>
-
 
 <style scoped>
 .container {
@@ -208,5 +210,10 @@ h3 {
   font-size: 20px;
   color: #007bff;
   margin-bottom: 15px;
+}
+
+.btn-primary {
+  background-color: #007bff;
+  border-color: #007bff;
 }
 </style>
