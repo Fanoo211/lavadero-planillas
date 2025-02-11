@@ -118,33 +118,55 @@ export default {
 
       if (user) {
         try {
-          let planillasQuery = query(
-            collection(db, "planillas"),
-            where("usuario.email", "==", user.email), // o sin filtro para admin
-            orderBy("fechaCreacion", "desc"),
-            limit(this.itemsPerPage)
-          );
+          let planillasQuery;
 
-          // Si no estamos en la primera carga, usar `startAfter` para continuar desde la última planilla
+          if (this.userStore.isAdmin) {
+            planillasQuery = query(
+              collection(db, "planillas"),
+              orderBy("fecha", "desc"), // Ordenar por la fecha ingresada en la planilla
+              limit(this.itemsPerPage)
+            );
+          } else {
+            planillasQuery = query(
+              collection(db, "planillas"),
+              where("usuario.email", "==", user.email),
+              orderBy("fecha", "desc"), // Ordenar por la fecha ingresada en la planilla
+              limit(this.itemsPerPage)
+            );
+          }
+
           if (this.lastVisible) {
             planillasQuery = query(planillasQuery, startAfter(this.lastVisible));
           }
 
           const querySnapshot = await getDocs(planillasQuery);
-          const planillas = querySnapshot.docs.map((doc) => ({
+          let planillas = querySnapshot.docs.map((doc) => ({
             id: doc.id,
             ...doc.data(),
           }));
 
-          // Actualizar planillas y último documento
+          // Si es admin, obtener nombres de usuario desde la colección de usuarios
+          if (this.userStore.isAdmin) {
+            const usuariosSnapshot = await getDocs(collection(db, "usuarios"));
+            const usuarios = usuariosSnapshot.docs.reduce((acc, doc) => {
+              const data = doc.data();
+              acc[data.email] = `${data.name || "N/A"} ${data.surname || ""}`;
+              return acc;
+            }, {});
+
+            // Agregar nombres de usuario a las planillas
+            planillas = planillas.map((planilla) => ({
+              ...planilla,
+              usuarioNombre: usuarios[planilla.usuario.email] || "Desconocido",
+            }));
+          }
+
           this.planillas = [...this.planillas, ...planillas];
           this.lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
 
-          // Si no hay más planillas para cargar, marcar como cargadas todas
           if (querySnapshot.docs.length < this.itemsPerPage) {
             this.allPlanillasLoaded = true;
           }
-
         } catch (error) {
           console.error("Error al obtener las planillas:", error);
         }

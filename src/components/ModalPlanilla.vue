@@ -45,10 +45,10 @@
           <button type="button" class="btn btn-secondary" @click="$emit('close')">
             Cerrar
           </button>
-          <button type="button" class="btn btn-warning" @click="editarPlanilla">
+          <button v-if="isAdmin" type="button" class="btn btn-warning" @click="editarPlanilla">
             Editar
           </button>
-          <button type="button" class="btn btn-danger" @click="eliminarPlanilla">
+          <button v-if="isAdmin" type="button" class="btn btn-danger" @click="eliminarPlanilla">
             Eliminar
           </button>
         </div>
