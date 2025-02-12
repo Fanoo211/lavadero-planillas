@@ -30,10 +30,10 @@
               {{ bandeja.tipo }}: {{ bandeja.cantidad }}
             </li>
           </ul>
-          <p><strong>N° de Unidad:</strong>{{planilla.numeroUnidad}}</p>
-          <p><strong>Km Inicial:</strong> {{ planilla.kmInicio }}</p>
-          <p><strong>Km Final:</strong> {{ planilla.kmFin }}</p>
-          <p><strong>Km Recorridos:</strong> {{ planilla.kmRecorridos }}</p>
+          <p><strong>N° de Unidad:</strong>{{ planilla.numeroUnidad }}</p>
+          <p><strong>Km Inicial:</strong> {{ formatKm(planilla.kmInicio) }}</p>
+          <p><strong>Km Final:</strong> {{ formatKm(planilla.kmFin) }}</p>
+          <p><strong>Km Recorridos:</strong> {{ formatKm(planilla.kmRecorridos) }}</p>
           <h6>Controles:</h6>
           <ul>
             <li v-for="control in planilla.controles" :key="control.pregunta">
@@ -56,7 +56,6 @@
     </div>
   </div>
 </template>
-
 
 <script>
 import { getFirestore, doc, deleteDoc } from "firebase/firestore";
@@ -95,7 +94,11 @@ export default {
       }
     };
 
-    return { editarPlanilla, eliminarPlanilla };
+    const formatKm = (km) => {
+      return km ? parseFloat(km).toFixed(2) : "0.00"; // Asegura que los kilómetros se muestren con dos decimales
+    };
+
+    return { editarPlanilla, eliminarPlanilla, formatKm };
   },
 };
 </script>

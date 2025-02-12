@@ -47,7 +47,7 @@
       <!-- Botón para mostrar más planillas -->
       <div class="row justify-content-center mt-4">
         <div class="col-12 text-center">
-          <button v-if="!allPlanillasLoaded" class="btn btn-primary" @click="loadMorePlanillas">
+          <button v-if="!todasPlanillasCargadas" class="btn btn-primary" @click="cargarMasPlanillas">
             Mostrar más planillas
           </button>
         </div>
@@ -102,18 +102,18 @@ export default {
   data() {
     return {
       planillas: [],
-      allPlanillasLoaded: false,  // Cuando todas las planillas estén cargadas
-      lastVisible: null,          // Último documento cargado
-      itemsPerPage: 6,            // Número de items por carga
+      todasPlanillasCargadas: false,  // Cuando todas las planillas estén cargadas
+      ultimaVisible: null,          // Último documento cargado
+      planillasPorPagina: 6,            // Número de items por carga
       modalVisible: false,
       planillaSeleccionada: null,
     };
   },
   async created() {
-    await this.loadPlanillas(); // Cargar planillas al inicio
+    await this.cargarPlanillas(); // Cargar planillas al inicio
   },
   methods: {
-    async loadPlanillas() {
+    async cargarPlanillas() {
       const user = auth.currentUser;
 
       if (user) {
@@ -124,19 +124,19 @@ export default {
             planillasQuery = query(
               collection(db, "planillas"),
               orderBy("fecha", "desc"), // Ordenar por la fecha ingresada en la planilla
-              limit(this.itemsPerPage)
+              limit(this.planillasPorPagina)
             );
           } else {
             planillasQuery = query(
               collection(db, "planillas"),
               where("usuario.email", "==", user.email),
               orderBy("fecha", "desc"), // Ordenar por la fecha ingresada en la planilla
-              limit(this.itemsPerPage)
+              limit(this.planillasPorPagina)
             );
           }
 
-          if (this.lastVisible) {
-            planillasQuery = query(planillasQuery, startAfter(this.lastVisible));
+          if (this.ultimaVisible) {
+            planillasQuery = query(planillasQuery, startAfter(this.ultimaVisible));
           }
 
           const querySnapshot = await getDocs(planillasQuery);
@@ -162,18 +162,18 @@ export default {
           }
 
           this.planillas = [...this.planillas, ...planillas];
-          this.lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
+          this.ultimaVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
 
-          if (querySnapshot.docs.length < this.itemsPerPage) {
-            this.allPlanillasLoaded = true;
+          if (querySnapshot.docs.length < this.planillasPorPagina) {
+            this.todasPlanillasCargadas = true;
           }
         } catch (error) {
           console.error("Error al obtener las planillas:", error);
         }
       }
     },
-    loadMorePlanillas() {
-      this.loadPlanillas();  // Cargar más planillas al hacer clic en el botón
+    cargarMasPlanillas() {
+      this.cargarPlanillas();  // Cargar más planillas al hacer clic en el botón
     },
     abrirModal(planilla) {
       this.planillaSeleccionada = planilla;

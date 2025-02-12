@@ -1,10 +1,11 @@
 <template>
-            <!-- Navbar -->
-    <NavbarComp :title="'Nueva Planilla'" @logout="logout" />
-    <hr>
+  <!-- Navbar -->
+  <NavbarComp :title="'Nueva Planilla'" @logout="logout" />
+  <hr>
   <div class="nueva-planilla">
     <h1>Nueva Planilla</h1>
-    <form @submit.prevent="guardarPlanilla">
+    <form @submit.prevent="guardarPlanilla" :novalidate="true">
+      
       <!-- Turno, Fecha y Horario -->
       <fieldset>
         <legend>Turno, Fecha y Horario</legend>
@@ -12,29 +13,28 @@
           <label>Turno:</label>
           <div>
             <label>
-              <input type="radio" v-model="turno" value="mañana" /> Mañana
+              <input type="radio" v-model="turno" value="mañana" required /> Mañana
             </label>
             <label>
-              <input type="radio" v-model="turno" value="tarde" /> Tarde
+              <input type="radio" v-model="turno" value="tarde" required /> Tarde
             </label>
           </div>
+          <span v-if="!turno && submitted" class="error">El turno es obligatorio</span>
         </div>
         <div class="form-group">
           <label>Fecha:</label>
           <input type="date" v-model="fecha" required />
+          <span v-if="!fecha && submitted" class="error">La fecha es obligatoria</span>
         </div>
         <div class="form-group">
           <label>Horario:</label>
           <div>
-            <label>
-              Inicio:
-              <input type="time" v-model="horarioInicio" required />
-            </label>
-            <label>
-              Fin:
-              <input type="time" v-model="horarioFin" required />
-            </label>
+            Inicio:
+            <input type="time" v-model="horarioInicio" required />
+            Fin:
+            <input type="time" v-model="horarioFin" required />
           </div>
+          <span v-if="(!horarioInicio || !horarioFin) && submitted" class="error">Ambos horarios son obligatorios</span>
         </div>
       </fieldset>
 
@@ -55,18 +55,22 @@
         <div class="form-group">
           <label>N° de Unidad:</label>
           <input type="number" v-model="numeroUnidad" min="1" required />
+          <span v-if="!numeroUnidad && submitted" class="error">El número de unidad es obligatorio</span>
         </div>
         <div class="form-group">
           <label>Kilómetros antes de iniciar:</label>
-          <input type="number" v-model.number="kmInicio" min="0" required />
+          <input type="text" :value="kmInicio" @input="handleKmInicioInput" required />
+          <span v-if="!kmInicio && submitted" class="error">Los kilómetros iniciales son obligatorios</span>
         </div>
         <div class="form-group">
           <label>Kilómetros al finalizar:</label>
-          <input type="number" v-model.number="kmFin" min="0" required />
+          <input type="text" :value="kmFin" @input="handleKmFinInput" required />
+          <span v-if="!kmFin && submitted" class="error">Los kilómetros finales son obligatorios</span>
         </div>
         <div class="form-group">
           <label>Kilómetros recorridos:</label>
           <input type="number" :value="kmRecorridos" disabled />
+          <span v-if="kmRecorridos === 0 && submitted" class="error">Los kilómetros recorridos no pueden ser cero</span>
         </div>
         <div class="form-group">
           <label>Control Diario:</label>
@@ -121,8 +125,8 @@ export default {
       numeroUnidad: "",
       horarioInicio: "",
       horarioFin: "",
-      kmInicio: 0,
-      kmFin: 0,
+      kmInicio: "0",
+      kmFin: "0",
       bandejas: [
         { tipo: "Sacheteras Leche Fluida", cantidad: 0 },
         { tipo: "Sacheteras Yogur", cantidad: 0 },
@@ -155,11 +159,23 @@ export default {
         { pregunta: "Estado del asiento", estado: false },
         { pregunta: "Nivel de agua del radiador", estado: false },
       ],
+      submitted: false,
     };
   },
-  computed: {
+ computed: {
     kmRecorridos() {
-      return this.kmFin - this.kmInicio;
+      const inicio = parseFloat(this.kmInicio.replace(",", "."));
+      const fin = parseFloat(this.kmFin.replace(",", "."));
+      const recorridos = fin - inicio;
+      return isNaN(recorridos) ? 0 : recorridos % 1 === 0 ? recorridos : recorridos.toFixed(2);
+    },
+  },
+  watch: {
+    kmInicio(value) {
+      this.kmInicio = value.replace(",", ".");
+    },
+    kmFin(value) {
+      this.kmFin = value.replace(",", ".");
     },
   },
   methods: {
@@ -187,6 +203,19 @@ export default {
     }
   },
     async guardarPlanilla() {
+      this.submitted = true;  // Activar la validación de campos
+
+      // Activar desplazamiento hacia arriba
+      if (this.turno || !this.fecha || !this.horarioInicio || !this.horarioFin || !this.numeroUnidad || !this.kmInicio || !this.kmFin) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      // Validación de los campos obligatorios
+      if (!this.turno || !this.fecha || !this.horarioInicio || !this.horarioFin || !this.numeroUnidad || !this.kmInicio || !this.kmFin) {
+        alert("Todos los campos obligatorios deben ser completados.");
+        return;
+      }
+      
       const userInfo = await this.fetchUserInfo();
       if (!userInfo) {
         alert("No se pudo guardar la planilla porque los datos del usuario no están disponibles.");
@@ -220,11 +249,15 @@ export default {
     cancelar() {
       this.$router.push("/home");
     },
+    handleKmInicioInput(event) {
+      this.kmInicio = event.target.value.replace(",", ".");
+    },
+    handleKmFinInput(event) {
+      this.kmFin = event.target.value.replace(",", ".");
+    },
   },
 };
 </script>
-
-
 
 <style scoped>
 .nueva-planilla {
@@ -277,6 +310,28 @@ button[type="submit"] {
 button[type="button"] {
   background: #f44336;
   color: white;
+}
+
+/* Estilos para los mensajes de error */
+.error {
+  color: red;
+  font-size: 0.9em;
+  margin-top: 5px;
+  display: block;
+  opacity: 0;
+  animation: showError 0.5s forwards;
+}
+
+/* Animación para mostrar el error con desvanecimiento */
+@keyframes showError {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>
 
