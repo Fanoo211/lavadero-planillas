@@ -1,18 +1,28 @@
 <template>
-  <div class="login">
-    <h1>Iniciar Sesión</h1>
-    <form @submit.prevent="login">
-      <div>
-        <label for="username">Usuario:</label>
-        <input type="text" v-model="username" required />
+  <div class="login-container">
+    <div class="login">
+      <img src="@/assets/logo-manfrey.png" alt="Logo Manfrey" class="logo" />
+      <h1>Iniciar Sesión</h1>
+      <form @submit.prevent="login">
+        <div>
+          <label for="username">Usuario:</label>
+          <input type="text" v-model="username" required />
+        </div>
+        <div>
+          <label for="password">Contraseña:</label>
+          <input type="password" v-model="password" required />
+        </div>
+        <button type="submit" :disabled="isLoading">
+          <span v-if="isLoading" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+          {{ isLoading ? "Cargando..." : "Ingresar" }}
+        </button>
+      </form>
+
+      <!-- Mensaje de error con Bootstrap -->
+      <div v-if="errorMessage" class="alert alert-danger mt-3" role="alert">
+        {{ errorMessage }}
       </div>
-      <div>
-        <label for="password">Contraseña:</label>
-        <input type="password" v-model="password" required />
-      </div>
-      <button type="submit">Ingresar</button>
-    </form>
-    <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
+    </div>
   </div>
 </template>
 
@@ -30,6 +40,7 @@ export default {
       username: "",
       password: "",
       errorMessage: "",
+      isLoading: false, // Estado de carga
     };
   },
   setup() {
@@ -39,6 +50,9 @@ export default {
   },
   methods: {
     async login() {
+      this.isLoading = true; // Activar el estado de carga
+      this.errorMessage = ""; // Limpiar errores previos
+
       try {
         const q = query(
           collection(db, "usuarios"),
@@ -48,6 +62,7 @@ export default {
 
         if (querySnapshot.empty) {
           this.errorMessage = "Usuario no encontrado.";
+          this.isLoading = false;
           return;
         }
 
@@ -71,7 +86,9 @@ export default {
       } catch (error) {
         console.error("Error al iniciar sesión:", error);
         this.errorMessage =
-          "Nombre de usuario o contraseña incorrectos. Inténtalo de nuevo.";
+          "Error al iniciar sesión. Inténtalo de nuevo.";
+      } finally {
+        this.isLoading = false; // Desactivar el estado de carga
       }
     },
   },
@@ -79,24 +96,49 @@ export default {
 </script>
 
 <style scoped>
-.login {
-  max-width: 400px;
-  margin: 0 auto;
-  padding: 1em;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  background-color: #f9f9f9;
-  margin-top: 60px;
+/* Contenedor principal con imagen de fondo */
+.login-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  background: url("@/assets/fondo-login.jpeg") no-repeat center center/cover;
+  padding-top: 10vh;
 }
 
-input {
+/* Overlay oscuro para oscurecer la imagen */
+.login-container::before {
+  content: "";
+  position: absolute;
   width: 100%;
-  padding: 8px;
-  margin: 10px 0;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  top: 0;
+  left: 0;
 }
 
+/* Estilo del formulario */
+.login {
+  position: relative;
+  z-index: 2;
+  max-width: 400px;
+  padding: 1.5em;
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.9);
+  text-align: center;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+  margin-top: 2vh;
+}
+
+/* Estilo del logo */
+.logo {
+  width: 150px;
+  margin-bottom: 15px;
+}
+
+/* Estilo del botón */
 button {
   width: 100%;
   padding: 10px;
@@ -105,12 +147,34 @@ button {
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  font-size: 1em;
+  margin-top: 10px;
+  transition: background 0.3s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
 }
 
-button:hover {
+button:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
+button:hover:not(:disabled) {
   background-color: #0056b3;
 }
 
+/* Estilo de inputs */
+input {
+  width: 100%;
+  padding: 10px;
+  margin: 8px 0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+/* Mensaje de error */
 .error {
   color: red;
   font-size: 0.9em;
