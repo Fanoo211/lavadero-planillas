@@ -92,7 +92,7 @@
       </div>
 
       <!-- Mensaje de error general -->
-      <div v-if="submitted" class="alert alert-danger mt-4" role="alert">
+      <div v-if="submitted && hasErrors" class="alert alert-danger mt-4" role="alert">
         Todos los campos obligatorios deben ser completados.
       </div>
     </form>
@@ -178,6 +178,9 @@ export default {
       const recorridos = fin - inicio;
       return isNaN(recorridos) ? 0 : recorridos % 1 === 0 ? recorridos : recorridos.toFixed(2);
     },
+    hasErrors() {
+      return !this.turno || !this.fecha || !this.horarioInicio || !this.horarioFin || !this.kmsInicio || !this.kmsFin;
+    }
   },
   watch: {
     kmInicio(value) {
@@ -234,29 +237,34 @@ export default {
         return;
       }
 
-      const usuario = await this.fetchUserInfo();
-      if (!usuario) return;
+       const userInfo = await this.fetchUserInfo();
+      if (!userInfo) {
+        alert("No se pudo guardar la planilla porque los datos del usuario no están disponibles.");
+        return;
+      }
+
+      const planilla = {
+        turno: this.turno,
+        fecha: this.fecha,
+        numeroUnidad: this.numeroUnidad,
+        horarioInicio: this.horarioInicio,
+        horarioFin: this.horarioFin,
+        kmInicio: this.kmInicio,
+        kmFin: this.kmFin,
+        kmRecorridos: this.kmRecorridos,
+        bandejas: this.bandejas,
+        controles: this.controles,
+        usuario: { name: userInfo.name, surname: userInfo.surname, email: auth.currentUser.email },
+        fechaCreacion: new Date().toISOString(),
+      };
 
       try {
-        const planillaRef = await addDoc(collection(db, "planillas"), {
-          turno: this.turno,
-          fecha: this.fecha,
-          horarioInicio: this.horarioInicio,
-          horarioFin: this.horarioFin,
-          bandejas: this.bandejas,
-          numeroUnidad: this.numeroUnidad,
-          kmInicio: this.kmInicio,
-          kmFin: this.kmFin,
-          kmRecorridos: this.kmRecorridos,
-          controles: this.controles,
-          usuario: auth.currentUser.email,
-          nombreUsuario: usuario.name + " " + usuario.surname,
-          timestamp: new Date(),
-        });
-
-        console.log("Planilla guardada correctamente: ", planillaRef.id);
+        await addDoc(collection(db, "planillas"), planilla);
+        alert("Planilla guardada con éxito.");
+        this.$router.push("/home");
       } catch (error) {
-        console.error("Error al guardar la planilla: ", error);
+        console.error("Error al guardar la planilla:", error);
+        alert("Ocurrió un error al guardar la planilla.");
       }
     },
     cancelar() {
@@ -317,3 +325,4 @@ legend {
   margin-bottom: 30px; /* Espacio adicional */
 }
 </style>
+
