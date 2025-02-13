@@ -1,90 +1,99 @@
 <template>
   <!-- Navbar -->
   <NavbarComp :title="'Nueva Planilla'" @logout="logout" />
-  <hr>
+  <hr />
   <div class="nueva-planilla">
-    <h1>Nueva Planilla</h1>
+    <h1 class="mb-4">Nueva Planilla</h1>
     <form @submit.prevent="guardarPlanilla" :novalidate="true">
       
       <!-- Turno, Fecha y Horario -->
-      <fieldset>
-        <legend>Turno, Fecha y Horario</legend>
-        <div class="form-group">
-          <label>Turno:</label>
-          <div>
-            <label>
-              <input type="radio" v-model="turno" value="mañana" required /> Mañana
-            </label>
-            <label>
-              <input type="radio" v-model="turno" value="tarde" required /> Tarde
-            </label>
+      <fieldset class="mb-4 p-4 border rounded" style="background-color: #FF9F00;">
+        <legend class="fs-5 fw-bold">Turno, Fecha y Horario</legend>
+        <div class="mb-3">
+          <label class="form-label">Turno:</label>
+          <div class="form-check form-check-inline">
+            <input type="radio" v-model="turno" value="mañana" required class="form-check-input" :class="{'is-invalid': submitted && !turno}" />
+            <label class="form-check-label">Mañana</label>
           </div>
-          <span v-if="!turno && submitted" class="error">El turno es obligatorio</span>
-        </div>
-        <div class="form-group">
-          <label>Fecha:</label>
-          <input type="date" v-model="fecha" required />
-          <span v-if="!fecha && submitted" class="error">La fecha es obligatoria</span>
-        </div>
-        <div class="form-group">
-          <label>Horario:</label>
-          <div>
-            Inicio:
-            <input type="time" v-model="horarioInicio" required />
-            Fin:
-            <input type="time" v-model="horarioFin" required />
+          <div class="form-check form-check-inline">
+            <input type="radio" v-model="turno" value="tarde" required class="form-check-input" :class="{'is-invalid': submitted && !turno}" />
+            <label class="form-check-label">Tarde</label>
           </div>
-          <span v-if="(!horarioInicio || !horarioFin) && submitted" class="error">Ambos horarios son obligatorios</span>
+          <div v-if="!turno && submitted" class="invalid-feedback d-block">El turno es obligatorio</div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Fecha:</label>
+          <input type="date" v-model="fecha" required class="form-control" :class="{'is-invalid': submitted && !fecha}" />
+          <div v-if="!fecha && submitted" class="invalid-feedback">La fecha es obligatoria</div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Horario:</label>
+          <div class="d-flex gap-2">
+            <input type="time" v-model="horarioInicio" required class="form-control" :class="{'is-invalid': submitted && !horarioInicio}" />
+            <input type="time" v-model="horarioFin" required class="form-control" :class="{'is-invalid': submitted && !horarioFin}" />
+          </div>
+          <div v-if="(!horarioInicio || !horarioFin) && submitted" class="invalid-feedback d-block">Ambos horarios son obligatorios</div>
         </div>
       </fieldset>
 
       <!-- Bandejas Lavadas -->
-      <fieldset>
-        <legend>Bandejas Lavadas</legend>
-        <div class="form-group">
-          <div v-for="bandeja in bandejas" :key="bandeja.tipo" class="bandeja-item">
+      <fieldset class="mb-4 p-4 border rounded" style="background-color: #FF9F00;">
+        <legend class="fs-5 fw-bold">Bandejas Lavadas</legend>
+        <div class="mb-3">
+          <div v-for="bandeja in bandejas" :key="bandeja.tipo" class="d-flex justify-content-between mb-2">
             <label>{{ bandeja.tipo }}:</label>
-            <input type="number" v-model.number="bandeja.cantidad" min="0" />
+            <input type="number" v-model.number="bandeja.cantidad" min="0" class="form-control w-25" />
           </div>
         </div>
       </fieldset>
 
       <!-- Control Diario de Autoelevadores -->
-      <fieldset>
-        <legend>Control Diario de Autoelevadores</legend>
-        <div class="form-group">
-          <label>N° de Unidad:</label>
-          <input type="number" v-model="numeroUnidad" min="1" required />
-          <span v-if="!numeroUnidad && submitted" class="error">El número de unidad es obligatorio</span>
+      <fieldset class="mb-4 p-4 border rounded" style="background-color: #FF9F00;">
+        <legend class="fs-5 fw-bold">Control Diario de Autoelevadores</legend>
+        <div class="mb-3">
+          <label class="form-label">N° de Unidad:</label>
+          <input type="number" v-model="numeroUnidad" min="1" required class="form-control" :class="{'is-invalid': submitted && !numeroUnidad}" />
+          <div v-if="!numeroUnidad && submitted" class="invalid-feedback">El número de unidad es obligatorio</div>
         </div>
-        <div class="form-group">
-          <label>Kilómetros antes de iniciar:</label>
-          <input type="text" :value="kmInicio" @input="handleKmInicioInput" required />
-          <span v-if="!kmInicio && submitted" class="error">Los kilómetros iniciales son obligatorios</span>
+
+        <div class="mb-3">
+          <label class="form-label">Kilómetros antes de iniciar:</label>
+          <input type="text" :value="kmInicio" @input="handleKmInicioInput" required class="form-control" :class="{'is-invalid': submitted && !kmInicio}" />
+          <div v-if="!kmInicio && submitted" class="invalid-feedback">Los kilómetros iniciales son obligatorios</div>
         </div>
-        <div class="form-group">
-          <label>Kilómetros al finalizar:</label>
-          <input type="text" :value="kmFin" @input="handleKmFinInput" required />
-          <span v-if="!kmFin && submitted" class="error">Los kilómetros finales son obligatorios</span>
+
+        <div class="mb-3">
+          <label class="form-label">Kilómetros al finalizar:</label>
+          <input type="text" :value="kmFin" @input="handleKmFinInput" required class="form-control" :class="{'is-invalid': submitted && !kmFin}" />
+          <div v-if="!kmFin && submitted" class="invalid-feedback">Los kilómetros finales son obligatorios</div>
         </div>
-        <div class="form-group">
-          <label>Kilómetros recorridos:</label>
-          <input type="number" :value="kmRecorridos" disabled />
-          <span v-if="kmRecorridos === 0 && submitted" class="error">Los kilómetros recorridos no pueden ser cero</span>
+
+        <div class="mb-3">
+          <label class="form-label">Kilómetros recorridos:</label>
+          <input type="number" :value="kmRecorridos" disabled class="form-control" />
+          <div v-if="kmRecorridos === 0 && submitted" class="invalid-feedback d-block">Los kilómetros recorridos no pueden ser cero</div>
         </div>
-        <div class="form-group">
-          <label>Control Diario:</label>
-          <div v-for="control in controles" :key="control.pregunta" class="control-item">
+
+        <div class="mb-3">
+          <label class="form-label">Control Diario:</label>
+          <div v-for="control in controles" :key="control.pregunta" class="form-check d-flex justify-content-between">
             <label>{{ control.pregunta }}</label>
-            <input type="checkbox" v-model="control.estado" />
+            <input type="checkbox" v-model="control.estado" class="form-check-input" />
           </div>
         </div>
       </fieldset>
 
       <!-- Botones -->
-      <div class="form-actions">
-        <button type="submit">Guardar</button>
-        <button type="button" @click="cancelar">Cancelar</button>
+      <div class="d-flex justify-content-between mb-4">
+        <button type="submit" class="btn btn-success">Guardar</button>
+        <button type="button" @click="cancelar" class="btn btn-danger">Cancelar</button>
+      </div>
+
+      <!-- Mensaje de error general -->
+      <div v-if="submitted" class="alert alert-danger mt-4" role="alert">
+        Todos los campos obligatorios deben ser completados.
       </div>
     </form>
   </div>
@@ -203,142 +212,108 @@ export default {
     }
   },
     async guardarPlanilla() {
-      this.submitted = true;  // Activar la validación de campos
+      this.submitted = true;
 
-      // Activar desplazamiento hacia arriba
-      if (this.turno || !this.fecha || !this.horarioInicio || !this.horarioFin || !this.numeroUnidad || !this.kmInicio || !this.kmFin) {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-
-      // Validación de los campos obligatorios
-      if (!this.turno || !this.fecha || !this.horarioInicio || !this.horarioFin || !this.numeroUnidad || !this.kmInicio || !this.kmFin) {
-        alert("Todos los campos obligatorios deben ser completados.");
-        return;
-      }
-      
-      const userInfo = await this.fetchUserInfo();
-      if (!userInfo) {
-        alert("No se pudo guardar la planilla porque los datos del usuario no están disponibles.");
+      // Validación de errores
+      if (!this.turno || !this.fecha || !this.horarioInicio || !this.horarioFin) {
+        this.scrollToTop(); // 🔥 Hacer scroll hacia arriba si hay errores
         return;
       }
 
-      const planilla = {
-        turno: this.turno,
-        fecha: this.fecha,
-        numeroUnidad: this.numeroUnidad,
-        horarioInicio: this.horarioInicio,
-        horarioFin: this.horarioFin,
-        kmInicio: this.kmInicio,
-        kmFin: this.kmFin,
-        kmRecorridos: this.kmRecorridos,
-        bandejas: this.bandejas,
-        controles: this.controles,
-        usuario: { name: userInfo.name, surname: userInfo.surname, email: auth.currentUser.email },
-        fechaCreacion: new Date().toISOString(),
-      };
+      if (
+        !this.turno ||
+        !this.fecha ||
+        !this.horarioInicio ||
+        !this.horarioFin ||
+        !this.numeroUnidad ||
+        !this.kmInicio ||
+        !this.kmFin ||
+        this.kmRecorridos === 0
+      ) {
+        console.log("Faltan campos obligatorios");
+        return;
+      }
+
+      const usuario = await this.fetchUserInfo();
+      if (!usuario) return;
 
       try {
-        await addDoc(collection(db, "planillas"), planilla);
-        alert("Planilla guardada con éxito.");
-        this.$router.push("/home");
+        const planillaRef = await addDoc(collection(db, "planillas"), {
+          turno: this.turno,
+          fecha: this.fecha,
+          horarioInicio: this.horarioInicio,
+          horarioFin: this.horarioFin,
+          bandejas: this.bandejas,
+          numeroUnidad: this.numeroUnidad,
+          kmInicio: this.kmInicio,
+          kmFin: this.kmFin,
+          kmRecorridos: this.kmRecorridos,
+          controles: this.controles,
+          usuario: auth.currentUser.email,
+          nombreUsuario: usuario.name + " " + usuario.surname,
+          timestamp: new Date(),
+        });
+
+        console.log("Planilla guardada correctamente: ", planillaRef.id);
       } catch (error) {
-        console.error("Error al guardar la planilla:", error);
-        alert("Ocurrió un error al guardar la planilla.");
+        console.error("Error al guardar la planilla: ", error);
       }
     },
     cancelar() {
       this.$router.push("/home");
     },
     handleKmInicioInput(event) {
-      this.kmInicio = event.target.value.replace(",", ".");
+      this.kmInicio = event.target.value;
     },
     handleKmFinInput(event) {
-      this.kmFin = event.target.value.replace(",", ".");
+      this.kmFin = event.target.value;
     },
+    scrollToTop() {
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth" // 🔥 Animación suave de desplazamiento
+      });
+    }
   },
 };
 </script>
 
 <style scoped>
 .nueva-planilla {
-  max-width: 700px;
+  max-width: 800px;
   margin: 0 auto;
-  padding: 20px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  background: #f9f9f9;
 }
 
-form fieldset {
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  padding: 15px;
-  margin-bottom: 20px;
+hr {
+  margin: 20px 0;
 }
 
-form legend {
-  font-size: 1.2em;
+legend {
   font-weight: bold;
 }
 
-.form-group {
-  margin-bottom: 15px;
+.fs-6 {
+  font-size: 0.875rem;
 }
 
-.bandeja-item,
-.control-item {
-  margin: 10px 0;
-}
-
-.form-actions {
-  display: flex;
-  justify-content: space-between;
-}
-
-button {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-button[type="submit"] {
-  background: #4caf50;
-  color: white;
-}
-
-button[type="button"] {
-  background: #f44336;
-  color: white;
-}
-
-/* Estilos para los mensajes de error */
-.error {
+.text-danger {
   color: red;
-  font-size: 0.9em;
-  margin-top: 5px;
-  display: block;
-  opacity: 0;
-  animation: showError 0.5s forwards;
 }
 
-/* Animación para mostrar el error con desvanecimiento */
-@keyframes showError {
-  0% {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.btn {
+  width: 48%;
+}
+
+.form-check-label {
+  padding-right: 10px; /* Añade un pequeño espacio entre el label y el checkbox */
+}
+
+.form-check-input {
+  order: 2; /* Mueve el checkbox al lado derecho */
+}
+
+/* Añadir espacio debajo de los botones */
+.d-flex.mb-4 {
+  margin-bottom: 30px; /* Espacio adicional */
 }
 </style>
-
-
-
-
-
-
-
-
