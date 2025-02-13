@@ -4,8 +4,8 @@
     <NavbarComp :title="'Lavadero de Bandejas'" @logout="logout" />
 
     <!-- Main -->
-    <div class="container mt-4">
-      <div class="row justify-content-center">
+    <div class="container-fluid mt-4">
+      <div class="row justify-content-center align-items-center">
         <div class="col-12 text-center">
           <h2 class="welcome-message">
             Bienvenido, {{ userStore.name }} {{ userStore.surname }}
@@ -13,8 +13,8 @@
         </div>
 
         <!-- Botón de nueva planilla (solo para usuarios estándar) -->
-        <div v-if="!userStore.isAdmin" class="col-4">
-          <div class="card text-center shadow" @click="nuevaPlanilla">
+        <div v-if="!userStore.isAdmin" class="col-md-4 col-sm-6 col-12">
+          <div class="card text-center shadow new-planilla-btn" @click="nuevaPlanilla">
             <div class="card-body">
               <h3 class="card-title">+</h3>
               <p class="card-text">Nueva Planilla</p>
@@ -23,31 +23,36 @@
         </div>
       </div>
 
-      <!-- Historial de Planillas -->
-      <div class="row justify-content-center mt-4">
-        <div class="col-12">
-          <h3>
-            Historial de Planillas 
-            <span v-if="userStore.isAdmin">(Todos los usuarios)</span>
-          </h3>
+      <!-- Cargando -->
+      <div v-if="cargando" class="text-center mt-5">
+        <div class="spinner-border text-primary" role="status" style="width: 4rem; height: 4rem;">
+          <span class="visually-hidden">Cargando...</span>
         </div>
+        <p class="mt-2">Cargando planillas, por favor espere...</p>
+      </div>
 
-        <div
-          v-for="planilla in planillas"
-          :key="planilla.id"
-          class="col-md-4 mb-3"
-        >
-          <CardPlanilla
-            :planilla="planilla"
-            @click="abrirModal(planilla)"
-          />
+      <!-- Historial de Planillas -->
+      <div v-else class="mt-4">
+        <h3 class="historial-title text-center">
+          Historial de Planillas 
+          <span v-if="userStore.isAdmin">(Todos los usuarios)</span>
+        </h3>
+
+        <div v-for="(fila, index) in planillasAgrupadas" :key="index" class="row justify-content-center">
+          <div v-for="planilla in fila" :key="planilla.id" class="col-md-4 col-sm-6 col-12 mb-4">
+            <CardPlanilla
+              :planilla="planilla"
+              @click="abrirModal(planilla)"
+              class="shadow-sm"
+            />
+          </div>
         </div>
       </div>
 
       <!-- Botón para mostrar más planillas -->
       <div class="row justify-content-center mt-4">
-        <div class="col-12 text-center">
-          <button v-if="!todasPlanillasCargadas" class="btn btn-primary" @click="cargarMasPlanillas">
+        <div class="col-auto">
+          <button v-if="!todasPlanillasCargadas && !cargando" class="btn btn-primary btn-lg px-4" @click="cargarMasPlanillas">
             Mostrar más planillas
           </button>
         </div>
@@ -102,78 +107,75 @@ export default {
   data() {
     return {
       planillas: [],
-      todasPlanillasCargadas: false,  // Cuando todas las planillas estén cargadas
-      ultimaVisible: null,          // Último documento cargado
-      planillasPorPagina: 6,            // Número de items por carga
+      cargando: true,  // Nuevo estado de carga
+      todasPlanillasCargadas: false,
+      ultimaVisible: null,
+      planillasPorPagina: 6,
       modalVisible: false,
       planillaSeleccionada: null,
     };
   },
+  computed: {
+    // Divide las planillas en grupos de 3
+    planillasAgrupadas() {
+      const chunkSize = 3;
+      let result = [];
+      for (let i = 0; i < this.planillas.length; i += chunkSize) {
+        result.push(this.planillas.slice(i, i + chunkSize));
+      }
+      return result;
+    }
+  },
   async created() {
-    await this.cargarPlanillas(); // Cargar planillas al inicio
+    await this.cargarPlanillas();
   },
   methods: {
     async cargarPlanillas() {
-      const user = auth.currentUser;
+      this.cargando = true;
+      try {
+        const user = auth.currentUser;
+        if (!user) return;
 
-      if (user) {
-        try {
-          let planillasQuery;
-
-          if (this.userStore.isAdmin) {
-            planillasQuery = query(
-              collection(db, "planillas"),
-              orderBy("fecha", "desc"), // Ordenar por la fecha ingresada en la planilla
-              limit(this.planillasPorPagina)
-            );
-          } else {
-            planillasQuery = query(
-              collection(db, "planillas"),
-              where("usuario.email", "==", user.email),
-              orderBy("fecha", "desc"), // Ordenar por la fecha ingresada en la planilla
-              limit(this.planillasPorPagina)
-            );
-          }
-
-          if (this.ultimaVisible) {
-            planillasQuery = query(planillasQuery, startAfter(this.ultimaVisible));
-          }
-
-          const querySnapshot = await getDocs(planillasQuery);
-          let planillas = querySnapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
-
-          // Si es admin, obtener nombres de usuario desde la colección de usuarios
-          if (this.userStore.isAdmin) {
-            const usuariosSnapshot = await getDocs(collection(db, "usuarios"));
-            const usuarios = usuariosSnapshot.docs.reduce((acc, doc) => {
-              const data = doc.data();
-              acc[data.email] = `${data.name || "N/A"} ${data.surname || ""}`;
-              return acc;
-            }, {});
-
-            // Agregar nombres de usuario a las planillas
-            planillas = planillas.map((planilla) => ({
-              ...planilla,
-              usuarioNombre: usuarios[planilla.usuario.email] || "Desconocido",
-            }));
-          }
-
-          this.planillas = [...this.planillas, ...planillas];
-          this.ultimaVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
-
-          if (querySnapshot.docs.length < this.planillasPorPagina) {
-            this.todasPlanillasCargadas = true;
-          }
-        } catch (error) {
-          console.error("Error al obtener las planillas:", error);
+        let planillasQuery;
+        if (this.userStore.isAdmin) {
+          planillasQuery = query(
+            collection(db, "planillas"),
+            orderBy("fecha", "desc"),
+            limit(this.planillasPorPagina)
+          );
+        } else {
+          planillasQuery = query(
+            collection(db, "planillas"),
+            where("usuario.email", "==", user.email),
+            orderBy("fecha", "desc"),
+            limit(this.planillasPorPagina)
+          );
         }
+
+        if (this.ultimaVisible) {
+          planillasQuery = query(planillasQuery, startAfter(this.ultimaVisible));
+        }
+
+        const querySnapshot = await getDocs(planillasQuery);
+        const nuevasPlanillas = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        this.planillas = [...this.planillas, ...nuevasPlanillas];
+        this.ultimaVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
+
+        if (querySnapshot.docs.length < this.planillasPorPagina) {
+          this.todasPlanillasCargadas = true;
+        }
+      } catch (error) {
+        console.error("Error al cargar planillas:", error);
+      } finally {
+        this.cargando = false;
       }
     },
     cargarMasPlanillas() {
-      this.cargarPlanillas();  // Cargar más planillas al hacer clic en el botón
+      this.cargarPlanillas();
     },
     abrirModal(planilla) {
       this.planillaSeleccionada = planilla;
@@ -186,56 +188,84 @@ export default {
     eliminarPlanillaLocal(id) {
       this.planillas = this.planillas.filter(planilla => planilla.id !== id);
     }
-  },
+  }
 };
 </script>
 
 <style scoped>
-.container {
-  margin-top: 20px;
+/* Contenedor general */
+.container-fluid {
+  padding-left: 5%;
+  padding-right: 5%;
 }
 
+/* Mensaje de bienvenida */
 .welcome-message {
-  font-size: 24px;
+  font-size: 28px;
   font-weight: bold;
   color: #333;
   margin-bottom: 20px;
 }
 
-.card-title {
-  color: white;
+/* Spinner de carga */
+.spinner-border {
+  animation: spin 1s linear infinite;
 }
 
-.card.text-center {
-  background-color: #007bff;
-  color: white;
-  border-radius: 15px;
-  border: none;
-  transition: transform 0.3s, box-shadow 0.3s;
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
-.card.text-center:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 25px rgba(0, 123, 255, 0.4);
-}
-
-.card.text-center h3 {
-  font-size: 36px;
+/* Estilo del título */
+.historial-title {
+  font-size: 22px;
   font-weight: bold;
-}
-
-.card.text-center p {
-  font-size: 18px;
-}
-
-h3 {
-  font-size: 20px;
-  color: #007bff;
+  text-align: center;
   margin-bottom: 15px;
 }
 
+/* Estilo de las tarjetas de historial */
+.card {
+  border-radius: 10px;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+/* Botón de Nueva Planilla */
+.new-planilla-btn {
+  background-color: #007bff;
+  color: white;
+  border-radius: 15px;
+  cursor: pointer;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.new-planilla-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(0, 123, 255, 0.5);
+}
+
+.new-planilla-btn:active {
+  transform: translateY(1px);
+  box-shadow: 0 5px 15px rgba(0, 123, 255, 0.3);
+}
+
+/* Botón de mostrar más */
 .btn-primary {
   background-color: #007bff;
   border-color: #007bff;
+  font-size: 18px;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background-color: #0056b3;
+  border-color: #0056b3;
 }
 </style>
