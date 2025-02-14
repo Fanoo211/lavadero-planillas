@@ -3,7 +3,6 @@
   <NavbarComp :title="'Nueva Planilla'" @logout="logout" />
   <hr />
   <div class="nueva-planilla">
-    <h1 class="mb-4">Nueva Planilla</h1>
     <form @submit.prevent="guardarPlanilla" :novalidate="true">
       
       <!-- Turno, Fecha y Horario -->
@@ -91,6 +90,42 @@
         <button type="button" @click="cancelar" class="btn btn-danger">Cancelar</button>
       </div>
 
+      <!-- Modal de éxito -->
+      <div class="modal fade" id="modalGuardadoExitoso" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+              <h5 class="modal-title">Éxito</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <p>Planilla guardada con éxito.</p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-primary" data-bs-dismiss="modal" @click="irAHome">Aceptar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal de error -->
+      <div class="modal fade" id="modalError" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+              <h5 class="modal-title">Error</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <p>Ocurrió un error al guardar la planilla. Inténtalo de nuevo.</p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Mensaje de error general -->
       <div v-if="submitted && hasErrors" class="alert alert-danger mt-4" role="alert">
         Todos los campos obligatorios deben ser completados.
@@ -105,6 +140,7 @@ import { auth } from "../firebase";
 import { signOut } from "firebase/auth";
 import { useRouter } from "vue-router";
 import { getFirestore, collection, query, where, getDocs, addDoc } from "firebase/firestore";
+import * as bootstrap from "bootstrap";
 
 const db = getFirestore();
 
@@ -260,15 +296,25 @@ export default {
 
       try {
         await addDoc(collection(db, "planillas"), planilla);
-        alert("Planilla guardada con éxito.");
-        this.$router.push("/home");
+        this.mostrarModalGuardado();
       } catch (error) {
         console.error("Error al guardar la planilla:", error);
-        alert("Ocurrió un error al guardar la planilla.");
+        this.mostrarModalError();
       }
     },
     cancelar() {
+      this.irAHome();
+    },
+    irAHome() {
       this.$router.push("/home");
+    },
+    mostrarModalGuardado() {
+      const modal = new bootstrap.Modal(document.getElementById("modalGuardadoExitoso"));
+      modal.show();
+    },
+    mostrarModalError() {
+      const modal = new bootstrap.Modal(document.getElementById("modalError"));
+      modal.show();
     },
     handleKmInicioInput(event) {
       this.kmInicio = event.target.value;

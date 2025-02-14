@@ -1,110 +1,152 @@
 <template>
+  <!-- Navbar -->
+  <NavbarComp :title="'Editar Planilla'" @logout="logout" />
+  <hr />
+
   <div class="container mt-4">
-    <h2>Editar Planilla</h2>
     <form @submit.prevent="guardarCambios">
       
-      <div class="mb-3">
-        <label class="form-label">Fecha</label>
-        <input type="date" v-model="planilla.fecha" class="form-control" required />
-      </div>
-
-      <div class="mb-3">
-        <label class="form-label">Turno</label>
-        <div>
+      <!-- Turno, Fecha y Horario -->
+      <fieldset class="mb-4 p-4 border rounded" style="background-color: #FF9F00;">
+        <legend class="fs-5 fw-bold">Turno, Fecha y Horario</legend>
+        <div class="mb-3">
+          <label class="form-label">Turno:</label>
           <div class="form-check form-check-inline">
-            <input 
-              class="form-check-input" 
-              type="radio" 
-              id="turnoManana" 
-              value="mañana" 
-              v-model="planilla.turno"
-            />
-            <label class="form-check-label" for="turnoManana">Mañana</label>
+            <input type="radio" id="turno-manana" v-model="planilla.turno" value="mañana" class="form-check-input" />
+            <label for="turno-manana" class="form-check-label">Mañana</label>
           </div>
           <div class="form-check form-check-inline">
-            <input 
-              class="form-check-input" 
-              type="radio" 
-              id="turnoTarde" 
-              value="tarde" 
-              v-model="planilla.turno"
-            />
-            <label class="form-check-label" for="turnoTarde">Tarde</label>
+            <input type="radio" id="turno-tarde" v-model="planilla.turno" value="tarde" class="form-check-input" />
+            <label for="turno-tarde" class="form-check-label">Tarde</label>
           </div>
         </div>
-      </div>
 
-      <div class="mb-3">
-        <label class="form-label">Horario de inicio</label>
-        <input type="time" v-model="planilla.horarioInicio" class="form-control" required />
-      </div>
-      
-      <div class="mb-3">
-        <label class="form-label">Horario de fin</label>
-        <input type="time" v-model="planilla.horarioFin" class="form-control" required />
-      </div>
+        <div class="mb-3">
+          <label class="form-label">Fecha:</label>
+          <input type="date" v-model="planilla.fecha" class="form-control" required />
+        </div>
 
-      <h4>Bandejas Lavadas</h4>
-      <div v-for="(bandeja, index) in planilla.bandejas" :key="index" class="mb-3">
-        <label class="form-label">{{ bandeja.tipo }}</label>
-        <input type="number" v-model="bandeja.cantidad" class="form-control" min="0" required />
-      </div>
+        <div class="mb-3">
+          <label class="form-label">Horario:</label>
+          <div class="d-flex gap-2">
+            <input type="time" v-model="planilla.horarioInicio" class="form-control" required />
+            <input type="time" v-model="planilla.horarioFin" class="form-control" required />
+          </div>
+        </div>
+      </fieldset>
 
-      <h4>Controles</h4>
-      
-      <div class="mb-3">
-        <label class="form-label">Kilómetros iniciales</label>
-        <input type="number" v-model="planilla.kmInicio" class="form-control" min="0" step="0.01" required />
-      </div>
+      <!-- Bandejas Lavadas -->
+      <fieldset class="mb-4 p-4 border rounded" style="background-color: #FF9F00;">
+        <legend class="fs-5 fw-bold">Bandejas Lavadas</legend>
+        <div class="mb-3">
+          <div v-for="(bandeja, index) in planilla.bandejas" :key="index" class="d-flex justify-content-between mb-2">
+            <label>{{ bandeja.tipo }}:</label>
+            <input type="number" v-model="bandeja.cantidad" min="0" class="form-control w-25" required />
+          </div>
+        </div>
+      </fieldset>
 
-      <div class="mb-3">
-        <label class="form-label">Kilómetros finales</label>
-        <input type="number" v-model="planilla.kmFin" class="form-control" min="0" step="0.01" required />
-      </div>
+      <!-- Control Diario de Autoelevadores -->
+      <fieldset class="mb-4 p-4 border rounded" style="background-color: #FF9F00;">
+        <legend class="fs-5 fw-bold">Control Diario de Autoelevadores</legend>
+        <div class="mb-3">
+          <label class="form-label">Kilómetros Iniciales:</label>
+          <input type="number" v-model="planilla.kmInicio" class="form-control" min="0" step="0.01" required />
+        </div>
 
-      <div class="mb-3">
-        <label class="form-label">Kilómetros recorridos</label>
-        <input type="number" :value="formatKm(planilla.kmFin - planilla.kmInicio)" class="form-control" disabled />
-      </div>
+        <div class="mb-3">
+          <label class="form-label">Kilómetros Finales:</label>
+          <input type="number" v-model="planilla.kmFin" class="form-control" min="0" step="0.01" required />
+        </div>
 
-      <!-- N° de Unidad -->
-      <div class="mb-3">
-        <label class="form-label">N° de Unidad</label>
-        <input type="text" v-model="planilla.numeroUnidad" class="form-control" required />
-      </div>
+        <div class="mb-3">
+          <label class="form-label">Kilómetros Recorridos:</label>
+          <input type="number" :value="formatKm(planilla.kmFin - planilla.kmInicio)" class="form-control" disabled />
+        </div>
 
-      <div v-for="(control, index) in planilla.controles" :key="index" class="mb-3">
-        <label class="form-label">{{ control.pregunta }}</label>
-        <select v-model="control.estado" class="form-select">
-          <option :value="true">✔ Sí</option>
-          <option :value="false">✘ No</option>
-        </select>
-      </div>
+        <div class="mb-3">
+          <label class="form-label">N° de Unidad:</label>
+          <input type="text" v-model="planilla.numeroUnidad" class="form-control" required />
+        </div>
 
-      <button type="submit" class="btn btn-primary">Guardar Cambios</button>
-      <button type="button" class="btn btn-secondary ms-2" @click="cancelar">Cancelar</button>
+        <div v-for="(control, index) in planilla.controles" :key="index" class="mb-3">
+          <label class="form-label">{{ control.pregunta }}</label>
+          <select v-model="control.estado" class="form-select">
+            <option :value="true">✔ Sí</option>
+            <option :value="false">✘ No</option>
+          </select>
+        </div>
+      </fieldset>
+
+      <!-- Botones -->
+      <div class="d-flex justify-content-between mb-4">
+        <button type="submit" class="btn btn-success">Guardar Cambios</button>
+        <button type="button" class="btn btn-danger" @click="cancelar">Cancelar</button>
+      </div>
     </form>
+  </div>
+
+  <!-- Modal de Éxito -->
+  <div class="modal fade" id="successModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-success text-white">
+          <h5 class="modal-title">Éxito</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          Planilla actualizada con éxito.
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-success" data-bs-dismiss="modal" @click="$router.push('/home')">Aceptar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Error -->
+  <div class="modal fade" id="errorModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title">Error</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          {{ errorMessage }}
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
 import { getFirestore, doc, getDoc, updateDoc } from "firebase/firestore";
+import NavbarComp from "@/components/NavbarComp.vue";
+import bootstrap from "bootstrap/dist/js/bootstrap.bundle.min.js";
 
 export default {
+  components: {
+    NavbarComp,
+  },
   props: ["id"],
   data() {
     return {
       planilla: {
         fecha: "",
-        turno: "",  // Se inicia vacío
+        turno: "",
         horarioInicio: "",
         horarioFin: "",
         kmInicio: 0,
         kmFin: 0,
         numeroUnidad: "",
         bandejas: [],
-        controles: []
+        controles: [],
       },
+      errorMessage: "",
     };
   },
   async created() {
@@ -120,34 +162,28 @@ export default {
   },
   methods: {
     formatKm(value) {
-      return parseFloat(value).toFixed(2); // Formateo de los kilómetros con 2 decimales
+      return parseFloat(value).toFixed(2);
     },
     async guardarCambios() {
       if (this.planilla.kmFin < this.planilla.kmInicio) {
-        alert("Los kilómetros finales no pueden ser menores que los iniciales.");
+        this.errorMessage = "Los kilómetros finales no pueden ser menores que los iniciales.";
+        new bootstrap.Modal(document.getElementById("errorModal")).show();
         return;
       }
 
       const db = getFirestore();
       const docRef = doc(db, "planillas", this.id);
-      
-      // Redondear los kilómetros a 2 decimales antes de guardar
-      this.planilla.kmInicio = parseFloat(this.planilla.kmInicio).toFixed(2);
-      this.planilla.kmFin = parseFloat(this.planilla.kmFin).toFixed(2);
-      
-      // Convertir el turno a minúsculas antes de guardar
-      this.planilla.turno = this.planilla.turno.toLowerCase();
-
-      // Calcular kilómetros recorridos antes de actualizar Firestore
-      this.planilla.kmRecorridos = (this.planilla.kmFin - this.planilla.kmInicio).toFixed(2);
 
       try {
-        await updateDoc(docRef, this.planilla);
-        alert("Planilla actualizada con éxito.");
-        this.$router.push("/home");
+        await updateDoc(docRef, {
+          ...this.planilla,
+          kmRecorridos: (this.planilla.kmFin - this.planilla.kmInicio).toFixed(2),
+        });
+
+        new bootstrap.Modal(document.getElementById("successModal")).show();
       } catch (error) {
-        console.error("Error al actualizar la planilla:", error);
-        alert("Ocurrió un error al guardar los cambios.");
+        this.errorMessage = "Ocurrió un error al guardar los cambios.";
+        new bootstrap.Modal(document.getElementById("errorModal")).show();
       }
     },
     cancelar() {
@@ -159,6 +195,6 @@ export default {
 
 <style scoped>
 .container {
-  max-width: 600px;
+  max-width: 800px;
 }
 </style>

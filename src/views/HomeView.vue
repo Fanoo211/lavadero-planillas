@@ -7,7 +7,7 @@
     <div class="container-fluid mt-4">
       <div class="row justify-content-center align-items-center">
         <div class="col-12 text-center">
-          <h2 class="welcome-message">
+          <h2 class="welcome-message animated-welcome">
             Bienvenido, {{ userStore.name }} {{ userStore.surname }}
           </h2>
         </div>
@@ -50,7 +50,7 @@
       </div>
 
       <!-- Botón para mostrar más planillas -->
-      <div class="row justify-content-center mt-4">
+      <div class="row justify-content-center mb-4">
         <div class="col-auto">
           <button v-if="!todasPlanillasCargadas && !cargando" class="btn btn-primary btn-lg px-4" @click="cargarMasPlanillas">
             Mostrar más planillas
@@ -132,46 +132,64 @@ export default {
   methods: {
     async cargarPlanillas() {
       this.cargando = true;
-      try {
-        const user = auth.currentUser;
-        if (!user) return;
+      const user = auth.currentUser;
 
-        let planillasQuery;
-        if (this.userStore.isAdmin) {
-          planillasQuery = query(
-            collection(db, "planillas"),
-            orderBy("fecha", "desc"),
-            limit(this.planillasPorPagina)
-          );
-        } else {
-          planillasQuery = query(
-            collection(db, "planillas"),
-            where("usuario.email", "==", user.email),
-            orderBy("fecha", "desc"),
-            limit(this.planillasPorPagina)
-          );
+      if (user) {
+        try {
+          let planillasQuery;
+
+          if (this.userStore.isAdmin) {
+            planillasQuery = query(
+              collection(db, "planillas"),
+              orderBy("fecha", "desc"), // Ordenar por la fecha ingresada en la planilla
+              limit(this.planillasPorPagina)
+            );
+          } else {
+            planillasQuery = query(
+              collection(db, "planillas"),
+              where("usuario.email", "==", user.email),
+              orderBy("fecha", "desc"), // Ordenar por la fecha ingresada en la planilla
+              limit(this.planillasPorPagina)
+            );
+          }
+
+          if (this.ultimaVisible) {
+            planillasQuery = query(planillasQuery, startAfter(this.ultimaVisible));
+          }
+
+          const querySnapshot = await getDocs(planillasQuery);
+          let planillas = querySnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+
+          // Si es admin, obtener nombres de usuario desde la colección de usuarios
+          if (this.userStore.isAdmin) {
+            const usuariosSnapshot = await getDocs(collection(db, "usuarios"));
+            const usuarios = usuariosSnapshot.docs.reduce((acc, doc) => {
+              const data = doc.data();
+              acc[data.email] = `${data.name || "N/A"} ${data.surname || ""}`;
+              return acc;
+            }, {});
+
+            // Agregar nombres de usuario a las planillas
+            planillas = planillas.map((planilla) => ({
+              ...planilla,
+              usuarioNombre: usuarios[planilla.usuario.email] || "Desconocido",
+            }));
+          }
+
+          this.planillas = [...this.planillas, ...planillas];
+          this.ultimaVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
+
+          if (querySnapshot.docs.length < this.planillasPorPagina) {
+            this.todasPlanillasCargadas = true;
+          }
+        } catch (error) {
+          console.error("Error al obtener las planillas:", error);
+        }finally{
+          this.cargando = false;
         }
-
-        if (this.ultimaVisible) {
-          planillasQuery = query(planillasQuery, startAfter(this.ultimaVisible));
-        }
-
-        const querySnapshot = await getDocs(planillasQuery);
-        const nuevasPlanillas = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-
-        this.planillas = [...this.planillas, ...nuevasPlanillas];
-        this.ultimaVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
-
-        if (querySnapshot.docs.length < this.planillasPorPagina) {
-          this.todasPlanillasCargadas = true;
-        }
-      } catch (error) {
-        console.error("Error al cargar planillas:", error);
-      } finally {
-        this.cargando = false;
       }
     },
     cargarMasPlanillas() {
@@ -268,4 +286,20 @@ export default {
   background-color: #0056b3;
   border-color: #0056b3;
 }
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animated-welcome {
+  animation: fadeInUp 1s ease-in-out;
+}
+
 </style>
