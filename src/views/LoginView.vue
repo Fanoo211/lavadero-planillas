@@ -18,7 +18,6 @@
         </button>
       </form>
 
-      <!-- Mensaje de error con Bootstrap -->
       <div v-if="errorMessage" class="alert alert-danger mt-3" role="alert">
         {{ errorMessage }}
       </div>
@@ -40,7 +39,7 @@ export default {
       username: "",
       password: "",
       errorMessage: "",
-      isLoading: false, // Estado de carga
+      isLoading: false,
     };
   },
   setup() {
@@ -50,8 +49,8 @@ export default {
   },
   methods: {
     async login() {
-      this.isLoading = true; // Activar el estado de carga
-      this.errorMessage = ""; // Limpiar errores previos
+      this.isLoading = true;
+      this.errorMessage = "";
 
       try {
         const q = query(
@@ -88,7 +87,7 @@ export default {
         this.errorMessage =
           "Error al iniciar sesión. Inténtalo de nuevo.";
       } finally {
-        this.isLoading = false; // Desactivar el estado de carga
+        this.isLoading = false;
       }
     },
   },

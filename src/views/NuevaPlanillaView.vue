@@ -59,13 +59,13 @@
 
         <div class="mb-3">
           <label class="form-label">Kilómetros antes de iniciar:</label>
-          <input type="text" :value="kmInicio" @input="handleKmInicioInput" required class="form-control" :class="{'is-invalid': submitted && !kmInicio}" />
+          <input type="number" :value="kmInicio" @input="handleKmInicioInput" required class="form-control" :class="{'is-invalid': submitted && !kmInicio}" />
           <div v-if="!kmInicio && submitted" class="invalid-feedback">Los kilómetros iniciales son obligatorios</div>
         </div>
 
         <div class="mb-3">
           <label class="form-label">Kilómetros al finalizar:</label>
-          <input type="text" :value="kmFin" @input="handleKmFinInput" required class="form-control" :class="{'is-invalid': submitted && !kmFin}" />
+          <input type="number" :value="kmFin" @input="handleKmFinInput" required class="form-control" :class="{'is-invalid': submitted && !kmFin}" />
           <div v-if="!kmFin && submitted" class="invalid-feedback">Los kilómetros finales son obligatorios</div>
         </div>
 
@@ -77,6 +77,10 @@
 
         <div class="mb-3">
           <label class="form-label">Control Diario:</label>
+          <div class="mb-3">
+            <input type="checkbox" v-model="seleccionarTodos" @change="toggleTodosControles" class="form-check-input" />
+            <label class="form-check-label fw-bold">Seleccionar todos</label>
+          </div>
           <div v-for="control in controles" :key="control.pregunta" class="form-check d-flex justify-content-between">
             <label>{{ control.pregunta }}</label>
             <input type="checkbox" v-model="control.estado" class="form-check-input" />
@@ -170,8 +174,8 @@ export default {
       numeroUnidad: "",
       horarioInicio: "",
       horarioFin: "",
-      kmInicio: "0",
-      kmFin: "0",
+      kmInicio: "",
+      kmFin: "",
       bandejas: [
         { tipo: "Sacheteras Leche Fluida", cantidad: 0 },
         { tipo: "Sacheteras Yogur", cantidad: 0 },
@@ -205,6 +209,7 @@ export default {
         { pregunta: "Nivel de agua del radiador", estado: false },
       ],
       submitted: false,
+      seleccionarTodos: false,
     };
   },
  computed: {
@@ -224,6 +229,12 @@ export default {
     },
     kmFin(value) {
       this.kmFin = value.replace(",", ".");
+    },
+    controles: {
+      deep: true,
+      handler() {
+        this.seleccionarTodos = this.controles.every(control => control.estado);
+      }
     },
   },
   methods: {
@@ -326,6 +337,11 @@ export default {
       window.scrollTo({
         top: 0,
         behavior: "smooth" // 🔥 Animación suave de desplazamiento
+      });
+    },
+    toggleTodosControles() {
+      this.controles.forEach(control => {
+        control.estado = this.seleccionarTodos;
       });
     }
   },

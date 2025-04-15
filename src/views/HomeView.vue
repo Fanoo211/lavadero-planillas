@@ -12,7 +12,7 @@
           </h2>
         </div>
 
-        <!-- Botón de nueva planilla (solo para usuarios estándar) -->
+        <!-- Botón de nueva planilla -->
         <div v-if="!userStore.isAdmin" class="col-md-4 col-sm-6 col-12">
           <div class="card text-center shadow new-planilla-btn" @click="nuevaPlanilla">
             <div class="card-body">
@@ -33,10 +33,37 @@
 
       <!-- Historial de Planillas -->
       <div v-else class="mt-4">
-        <h3 class="historial-title text-center">
-          Historial de Planillas 
-          <span v-if="userStore.isAdmin">(Todos los usuarios)</span>
-        </h3>
+        <div class="row align-items-center mb-3">
+          <div class="col-12 col-md-4 text-start text-md-start">
+            <!-- Espacio a la izquierda -->
+          </div>
+
+          <div class="col-12 col-md-4 text-center">
+            <h3 class="historial-title m-0">
+              Historial de Planillas
+              <span v-if="userStore.isAdmin">(Todos los usuarios)</span>
+            </h3>
+          </div>
+
+          <!-- Botón de Filtrar por Fecha -->
+          <div class="col-12 col-md-4 d-flex justify-content-end align-items-center mt-2 mt-md-0 gap-2">
+            <Datepicker
+              v-model="filtroFecha"
+              locale="es"
+              :enable-time-picker="false"
+              :clearable="false"
+              class="w-50" 
+              :placeholder="'Filtrar por fecha'"
+            />
+            <button
+              v-if="filtroFecha"
+              class="btn btn-outline-danger btn-sm"
+              @click="filtroFecha = null"
+            >
+              ❌
+            </button>
+          </div>
+        </div>
 
         <div v-for="(fila, index) in planillasAgrupadas" :key="index" class="row justify-content-center">
           <div v-for="planilla in fila" :key="planilla.id" class="col-md-4 col-sm-6 col-12 mb-4">
@@ -49,10 +76,18 @@
         </div>
       </div>
 
+      <div v-if="planillasAgrupadas.length === 0 && !cargando" class="text-center text-muted mt-4">
+        <p>No se encontraron planillas para la fecha seleccionada.</p>
+      </div>
+
       <!-- Botón para mostrar más planillas -->
       <div class="row justify-content-center mb-4">
         <div class="col-auto">
-          <button v-if="!todasPlanillasCargadas && !cargando" class="btn btn-primary btn-lg px-4" @click="cargarMasPlanillas">
+          <button
+            v-if="!filtroFecha && !todasPlanillasCargadas && !cargando"
+            class="btn btn-primary btn-lg px-4"
+            @click="cargarMasPlanillas"
+          >
             Mostrar más planillas
           </button>
         </div>
@@ -68,9 +103,11 @@
       @planillaEliminada="eliminarPlanillaLocal"
     />
   </div>
+
 </template>
 
 <script>
+import { es } from 'date-fns/locale';
 import NavbarComp from "@/components/NavbarComp.vue";
 import CardPlanilla from "@/components/CardPlanilla.vue";
 import ModalPlanilla from "@/components/ModalPlanilla.vue";
@@ -79,6 +116,10 @@ import { signOut } from "firebase/auth";
 import { useRouter } from "vue-router";
 import { useUserStore } from "../store/user";
 import { getFirestore, collection, query, where, getDocs, orderBy, limit, startAfter } from "firebase/firestore";
+import { ref } from "vue";
+import Datepicker from '@vuepic/vue-datepicker';
+import '@vuepic/vue-datepicker/dist/main.css';
+
 
 const db = getFirestore();
 
@@ -88,6 +129,7 @@ export default {
     NavbarComp,
     CardPlanilla,
     ModalPlanilla,
+    Datepicker,
   },
   setup() {
     const router = useRouter();
@@ -102,28 +144,43 @@ export default {
       router.push("/nueva-planilla");
     };
 
-    return { logout, nuevaPlanilla, userStore };
+    const inputFecha = ref(null);
+
+    return { logout, nuevaPlanilla, userStore, inputFecha };
   },
   data() {
     return {
       planillas: [],
-      cargando: true,  // Nuevo estado de carga
+      cargando: true, 
       todasPlanillasCargadas: false,
       ultimaVisible: null,
       planillasPorPagina: 6,
       modalVisible: false,
       planillaSeleccionada: null,
+      filtroFecha: null,
+      filtroPlanillas: [],
+      mostrarDatepicker: false,
+      localeEs: es,
     };
   },
   computed: {
-    // Divide las planillas en grupos de 3
     planillasAgrupadas() {
+      const fuente = this.filtroFecha ? this.filtroPlanillas : this.planillas;
       const chunkSize = 3;
       let result = [];
-      for (let i = 0; i < this.planillas.length; i += chunkSize) {
-        result.push(this.planillas.slice(i, i + chunkSize));
+      for (let i = 0; i < fuente.length; i += chunkSize) {
+        result.push(fuente.slice(i, i + chunkSize));
       }
       return result;
+    }
+  },
+  watch: {
+    filtroFecha(nuevaFecha) {
+      if (nuevaFecha) {
+        this.cargarPlanillasPorFecha();
+      } else {
+        this.filtroPlanillas = [];
+      }
     }
   },
   async created() {
@@ -205,7 +262,63 @@ export default {
     },
     eliminarPlanillaLocal(id) {
       this.planillas = this.planillas.filter(planilla => planilla.id !== id);
-    }
+    },
+    async cargarPlanillasPorFecha() {
+      this.cargando = true;
+      this.filtroPlanillas = [];
+
+      try {
+        const user = auth.currentUser;
+        let planillasQuery;
+
+        if (this.userStore.isAdmin) {
+          planillasQuery = query(collection(db, "planillas"));
+        } else {
+          planillasQuery = query(
+            collection(db, "planillas"),
+            where("usuario.email", "==", user.email)
+          );
+        }
+
+        const snapshot = await getDocs(planillasQuery);
+        let planillas = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+
+        if (this.userStore.isAdmin) {
+          const usuariosSnapshot = await getDocs(collection(db, "usuarios"));
+          const usuarios = usuariosSnapshot.docs.reduce((acc, doc) => {
+            const data = doc.data();
+            acc[data.email] = `${data.name || "N/A"} ${data.surname || ""}`;
+            return acc;
+          }, {});
+
+          planillas = planillas.map(planilla => ({
+            ...planilla,
+            usuarioNombre: usuarios[planilla.usuario.email] || "Desconocido"
+          }));
+        }
+
+        // Filtrar por la fecha seleccionada (formato exacto)
+        const formatearFecha = (fecha) => {
+          const date = new Date(fecha.seconds ? fecha.seconds * 1000 : fecha); // si es Timestamp
+          return date.toISOString().split("T")[0]; // "YYYY-MM-DD"
+        };
+
+        const fechaFiltroFormateada = formatearFecha(this.filtroFecha);
+
+        this.filtroPlanillas = planillas
+          .filter(p => formatearFecha(p.fecha) === fechaFiltroFormateada)
+          .sort((a, b) => (a.fecha < b.fecha ? 1 : -1))
+          .slice(0, this.planillasPorPagina);
+
+        this.cargando = false;
+      } catch (error) {
+        console.error("Error al cargar planillas por fecha:", error);
+        this.cargando = false;
+      }
+    },
   }
 };
 </script>
@@ -301,5 +414,4 @@ export default {
 .animated-welcome {
   animation: fadeInUp 1s ease-in-out;
 }
-
 </style>
