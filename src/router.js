@@ -1,9 +1,11 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { auth, signOut } from "./firebase";
+
 import LoginView from "./views/LoginView.vue";
 import HomeView from "./views/HomeView.vue";
 import NuevaPlanillaView from "./views/NuevaPlanillaView.vue";
-import EditarPlanillaView from "./views/EditarPlanillaView.vue"; // Importamos la vista
+import EditarPlanillaView from "./views/EditarPlanillaView.vue";
+import EstadisticasView from "./views/EstadisticasView.vue"; // ✅ Importar la nueva vista
 
 const routes = [
   {
@@ -28,6 +30,12 @@ const routes = [
     name: "EditarPlanilla",
     component: EditarPlanillaView,
     props: true,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/estadisticas", // ✅ Nueva ruta
+    name: "Estadisticas",
+    component: EstadisticasView,
     meta: { requiresAuth: true },
   },
   {

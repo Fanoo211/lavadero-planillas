@@ -1,7 +1,7 @@
 <template>
   <nav class="navbar navbar-expand-lg custom-navbar">
     <div class="container-fluid">
-      <a class="navbar-brand" @click="home">
+      <a class="navbar-brand d-flex align-items-center" @click="home">
         <img
           src="@/assets/logo-manfrey.png"
           alt="Logo"
@@ -9,7 +9,14 @@
           class="logo"
         />
       </a>
+
+      <!-- Enlace a Estadísticas -->
+      <a class="nav-link text-white ms-3" @click="goToEstadisticas" style="cursor: pointer;">
+        Estadísticas
+      </a>
+
       <span class="navbar-text mx-auto">{{ title }}</span>
+
       <button class="btn btn-light text-danger fw-bold" @click="logout">
         Cerrar Sesión
       </button>
@@ -44,10 +51,15 @@ export default {
       router.push("/home");
     };
 
-    return { logout, home };
+    const goToEstadisticas = () => {
+      router.push("/estadisticas");
+    };
+
+    return { logout, home, goToEstadisticas };
   },
 };
 </script>
+
 
 <style scoped>
 /* Color verde personalizado similar al logo de Manfrey */
