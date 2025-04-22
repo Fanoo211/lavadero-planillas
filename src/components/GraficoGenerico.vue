@@ -12,22 +12,10 @@ Chart.register(...registerables);
 
 export default {
   props: {
-    datos: {
-      type: Array,
-      required: true,
-    },
-    titulo: {
-      type: String,
-      required: true,
-    },
-    tipo: {
-      type: String,
-      default: "bar",
-    },
-    horizontal: {
-      type: Boolean,
-      default: false,
-    },
+    datos: { type: Array, required: true },
+    titulo: { type: String, required: true },
+    tipo: { type: String, default: "bar" },
+    horizontal: { type: Boolean, default: false },
   },
   setup(props) {
     const graficoCanvas = ref(null);
@@ -44,7 +32,6 @@ export default {
         const labels = props.datos.map((d) => d.label);
         const data = props.datos.map((d) => d.valor);
 
-        // 🎯 Colores personalizados para el gráfico de porcentaje
         let backgroundColor = "#42A5F5";
         let borderColor = "#1E88E5";
 
@@ -61,23 +48,20 @@ export default {
           type: props.tipo,
           data: {
             labels,
-            datasets: [
-              {
-                label: props.titulo,
-                data,
-                backgroundColor,
-                borderColor,
-                borderWidth: 1,
-              },
-            ],
+            datasets: [{
+              label: props.titulo,
+              data,
+              backgroundColor,
+              borderColor,
+              borderWidth: 1,
+            }],
           },
           options: {
             responsive: true,
+            maintainAspectRatio: false,
             indexAxis: props.horizontal ? "y" : "x",
             plugins: {
-              legend: {
-                display: props.tipo !== "bar",
-              },
+              legend: { display: props.tipo !== "bar" },
               title: {
                 display: true,
                 text: props.titulo,
@@ -86,9 +70,7 @@ export default {
             scales: {
               y: {
                 beginAtZero: true,
-                ticks: {
-                  stepSize: 1,
-                },
+                ticks: { stepSize: 1 },
               },
             },
           },
@@ -97,18 +79,10 @@ export default {
     };
 
     onMounted(() => {
-      if (props.datos.length) {
-        renderChart();
-      }
+      if (props.datos.length) renderChart();
     });
 
-    watch(
-      () => props.datos,
-      () => {
-        renderChart();
-      },
-      { immediate: true }
-    );
+    watch(() => props.datos, renderChart, { immediate: true });
 
     return {
       graficoCanvas,
@@ -118,7 +92,12 @@ export default {
 </script>
 
 <style scoped>
+div {
+  width: 100%;
+  height: 220px;
+}
 canvas {
   max-width: 100%;
+  max-height: 100%;
 }
 </style>
