@@ -1,19 +1,22 @@
 <template>
   <NavbarComp :title="''" @logout="logout" />
-  
+
   <div class="container mt-4">
-    <!-- Filtro dinámico -->
+    <!-- Filtro por año y mes -->
     <div class="row mb-4 justify-content-center">
       <div class="col-6 col-md-4">
-        <label for="filtroPeriodo" class="form-label text-center d-block">
+        <label class="form-label text-center d-block">
           🔍 Filtrar período
         </label>
-        <select id="filtroPeriodo" class="form-select" v-model.number="filtroPeriodo">
-          <option :value="7">Últimos 7 días</option>
-          <option :value="30">Últimos 30 días</option>
-          <option :value="90">Últimos 90 días</option>
-          <option :value="0">Todos</option>
-        </select>
+        <VueDatePicker
+          v-model="month"
+          locale="es"
+          month-picker
+          :format="'MM/yyyy'"
+          :disabled="false"
+          :clearable="false"
+          @change="cargarPlanillas"
+        />
       </div>
     </div>
 
@@ -80,13 +83,17 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/firebase";
 import { getAuth } from "firebase/auth";
 import { useUserStore } from "../store/user";
+import VueDatePicker from '@vuepic/vue-datepicker';
 
 export default {
-  components: { NavbarComp, GraficoGenerico },
+  components: { NavbarComp, GraficoGenerico, VueDatePicker },
   data() {
     return {
       planillas: [],
-      filtroPeriodo: 30,
+      month: {
+        month: new Date().getMonth(),
+        year: new Date().getFullYear(),
+      },
     };
   },
   computed: {
@@ -103,17 +110,28 @@ export default {
       return this.generarGraficosDesdePlanillas(this.planillasTarde);
     },
   },
+  watch: {
+    month: {
+      handler() {
+        this.cargarPlanillas();
+      },
+      deep: true,
+    },
+  },
   methods: {
     async cargarPlanillas() {
       const snapshot = await getDocs(collection(db, "planillas"));
       let todas = snapshot.docs.map((doc) => doc.data());
 
-      // Filtrar por periodo
-      if (this.filtroPeriodo > 0) {
-        const desde = new Date();
-        desde.setDate(desde.getDate() - this.filtroPeriodo);
-        todas = todas.filter((p) => new Date(p.fecha) >= desde);
-      }
+      // Filtrar por mes y año seleccionado (usando UTC)
+      const sel = new Date(this.month.year, this.month.month, 1);
+      todas = todas.filter((p) => {
+        const d = new Date(p.fecha);
+        return (
+          d.getUTCFullYear() === sel.getUTCFullYear() &&
+          d.getUTCMonth() === sel.getUTCMonth()
+        );
+      });
 
       // Si no es admin, filtrar por el email dentro del objeto usuario
       const authStore = useUserStore();
@@ -161,11 +179,11 @@ export default {
       planillas.forEach((p) =>
         p.controles?.forEach((c) => (c.estado ? aprob++ : rej++))
       );
-      const total = aprob + rej;
-      return total
+      const t = aprob + rej;
+      return t
         ? [
-            { label: "Aprobado", valor: (aprob / total) * 100 },
-            { label: "Rechazado", valor: (rej / total) * 100 },
+            { label: "Aprobado", valor: (aprob / t) * 100 },
+            { label: "Rechazado", valor: (rej / t) * 100 },
           ]
         : [];
     },
@@ -177,24 +195,21 @@ export default {
           if (!c.estado) f[c.pregunta] = (f[c.pregunta] || 0) + 1;
         })
       );
-      return Object.entries(f).map(([label, valor]) => ({ label, valor }));
+      return Object.entries(f).map(([lab, val]) => ({ label: lab, valor: val }));
     },
 
     calcularTendenciaCumplimiento(planillas) {
-      const fechas = {};
+      const m = {};
       planillas.forEach((p) => {
-        if (!fechas[p.fecha]) fechas[p.fecha] = { total: 0, aprob: 0 };
+        if (!m[p.fecha]) m[p.fecha] = { tot: 0, app: 0 };
         p.controles?.forEach((c) => {
-          fechas[p.fecha].total++;
-          if (c.estado) fechas[p.fecha].aprob++;
+          m[p.fecha].tot++;
+          if (c.estado) m[p.fecha].app++;
         });
       });
-      return Object.entries(fechas)
+      return Object.entries(m)
         .sort(([a], [b]) => new Date(a) - new Date(b))
-        .map(([label, d]) => ({
-          label,
-          valor: (d.aprob / d.total) * 100,
-        }));
+        .map(([lab, d]) => ({ label: lab, valor: (d.app / d.tot) * 100 }));
     },
 
     calcularDistribucionFallos(planillas) {
@@ -204,16 +219,11 @@ export default {
           if (!c.estado) dist[c.pregunta] = (dist[c.pregunta] || 0) + 1;
         })
       );
-      return Object.entries(dist).map(([label, valor]) => ({ label, valor }));
+      return Object.entries(dist).map(([lab, val]) => ({ label: lab, valor: val }));
     },
 
     logout() {
-      // tu lógica de logout...
-    },
-  },
-  watch: {
-    filtroPeriodo() {
-      this.cargarPlanillas();
+      //...
     },
   },
   mounted() {
