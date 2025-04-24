@@ -1,6 +1,6 @@
 <template>
   <!-- Navbar -->
-  <NavbarComp :title="'Nueva Planilla'" @logout="logout" />
+  <NavbarComp :title="''" @logout="logout" />
   <hr />
   <div class="nueva-planilla">
     <form @submit.prevent="guardarPlanilla" :novalidate="true">

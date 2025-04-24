@@ -1,7 +1,7 @@
 <template>
-  <NavbarComp :title="''" @logout="logout" />
-  
   <div class="container mt-4">
+    <NavbarComp :title="''" @logout="logout" />
+
     <!-- Filtro dinámico -->
     <div class="row mb-4 justify-content-center">
       <div class="col-6 col-md-4">
@@ -115,11 +115,16 @@ export default {
         todas = todas.filter((p) => new Date(p.fecha) >= desde);
       }
 
-      // Si no es admin, filtrar por el email dentro del objeto usuario
+      // Filtrar por usuario si no es admin
       const authStore = useUserStore();
       if (!authStore.isAdmin) {
         const email = getAuth().currentUser?.email || "";
-        todas = todas.filter((p) => p.usuario?.email === email);
+        todas = todas.filter((p) => {
+          if (p.usuario && typeof p.usuario === "object") {
+            return p.usuario.email === email;
+          }
+          return p.usuario === email;
+        });
       }
 
       this.planillas = todas;
@@ -156,8 +161,7 @@ export default {
     },
 
     calcularPorcentajeControles(planillas) {
-      let aprob = 0,
-        rej = 0;
+      let aprob = 0, rej = 0;
       planillas.forEach((p) =>
         p.controles?.forEach((c) => (c.estado ? aprob++ : rej++))
       );
@@ -208,7 +212,7 @@ export default {
     },
 
     logout() {
-      // tu lógica de logout...
+      // lógica de logout...
     },
   },
   watch: {

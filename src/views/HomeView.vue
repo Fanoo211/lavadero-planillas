@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- Navbar -->
-    <NavbarComp :title="'Lavadero de Bandejas'" @logout="logout" />
+    <NavbarComp :title="''" @logout="logout" />
 
     <!-- Main -->
     <div class="container-fluid mt-4">
